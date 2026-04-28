@@ -6,25 +6,82 @@ on:
   workflow_dispatch:     # Allow manual trigger
 
 jobs:
-  benchmark:
+  test_group1:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Run benchmarks
+      
+      - name: Test model group 1 (DeepSeek, GLM, MiniMax, Nemotron, Kimi)
         env:
           NIM_API_KEY: ${{ secrets.NIM_API_KEY }}
+          MODEL_GROUP: group1
         run: |
           chmod +x scripts/test-models.sh
           cd scripts && bash test-models.sh
+      
+      - name: Upload group1 results
+        uses: actions/upload-artifact@v3
+        with:
+          name: results-group1
+          path: scripts/results-group1.json
+          retention-days: 1
 
+  test_group2:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Test model group 2 (GPT-OSS, Gemma, Qwen, Mistral, Llama)
+        env:
+          NIM_API_KEY: ${{ secrets.NIM_API_KEY }}
+          MODEL_GROUP: group2
+        run: |
+          chmod +x scripts/test-models.sh
+          cd scripts && bash test-models.sh
+      
+      - name: Upload group2 results
+        uses: actions/upload-artifact@v3
+        with:
+          name: results-group2
+          path: scripts/results-group2.json
+          retention-days: 1
+
+  merge_and_update:
+    needs: [test_group1, test_group2]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Download all results
+        uses: actions/download-artifact@v3
+        with:
+          path: scripts/
+      
+      - name: Merge results and update history
+        run: |
+          # Move artifacts to scripts directory
+          mv scripts/results-group1/results-group1.json scripts/ || true
+          mv scripts/results-group2/results-group2.json scripts/ || true
+          
+          chmod +x scripts/merge-results.sh
+          cd scripts && bash merge-results.sh
+      
       - name: Commit and push results
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add history.json results.json || true
           git diff --quiet && git diff --staged --quiet || (git commit -m "Update benchmark results" && git push)
+

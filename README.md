@@ -1,7 +1,7 @@
 # NIMStats — NVIDIA NIM Benchmark Dashboard
 
 [![GitHub Actions](https://github.com/MauroDruwel/NIMStats/workflows/Benchmark%20NVIDIA%20NIM%20Models/badge.svg)](https://github.com/MauroDruwel/NIMStats/actions)
-[![GitHub Pages](https://img.shields.io/badge/view-live%20dashboard-brightgreen)](https://maurodruwel.github.io/NIMStats/)
+[![Live Dashboard](https://img.shields.io/badge/view-live%20dashboard-brightgreen)](https://nimstats.maurodruwel.be/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Community Driven](https://img.shields.io/badge/community-driven-orange.svg)](CONTRIBUTING.md)
 
@@ -61,12 +61,24 @@ cd NIMStats
 4. Value: Your API key from build.nvidia.com
 5. Click **Add secret**
 
-### 4. Enable GitHub Pages
+### 4. Enable Deployment
 
+Choose your hosting platform:
+
+**Option A: Cloudflare (Recommended)**
+1. Push to your repository
+2. Set up automatic deployment in [Cloudflare Pages](https://pages.cloudflare.com/)
+3. Connect your repository and select `main` branch
+
+**Option B: GitHub Pages**
 1. Go to **Settings** → **Pages**
 2. Under "Source", select **Deploy from a branch**
 3. Select **main** branch and **/ (root)** folder
 4. Click **Save**
+
+**Option C: Other Platforms**
+- [Netlify](https://netlify.com), [Vercel](https://vercel.com), or any static hosting service
+- Connect your repo for automatic deployments
 
 ### 5. Trigger Your First Run
 
@@ -74,28 +86,34 @@ cd NIMStats
 2. Select **Benchmark NVIDIA NIM Models**
 3. Click **Run workflow**
 4. Wait 2-5 minutes for completion
-5. Visit your site: `https://YOUR_USERNAME.github.io/NIMStats/`
+5. Visit your live dashboard (Cloudflare, GitHub Pages, or your chosen platform)
 
 ## Current Models
 
 The benchmark tests these latest NVIDIA NIM models:
 
-| Model | Type | Size | Use Case |
-|-------|------|------|----------|
-| `deepseek-ai/deepseek-v4-flash` | MoE | 284B | Fast coding & reasoning |
-| `qwen/qwen3.5-122b-a10b` | MoE | 122B | Excellent code generation |
-| `nvidia/nemotron-3-super-120b-a12b` | MoE | 120B | NVIDIA's flagship |
-| `google/gemma-4-31b-it` | Dense | 31B | High-quality reasoning |
-| `mistralai/mistral-small-4-119b-2603` | MoE | 119B | Efficient hybrid |
-| `meta/llama-3.3-70b-instruct` | Dense | 70B | Latest Llama |
-| `meta/llama-3.1-405b-instruct` | Dense | 405B | Largest Llama |
-| `meta/llama-3.1-70b-instruct` | Dense | 70B | Balanced performance |
-| `meta/llama-3.1-8b-instruct` | Dense | 8B | Small & fast |
-| `microsoft/phi-4-mini-instruct` | Dense | ~13B | Efficient inference |
-| `mistralai/mixtral-8x22b-instruct-v0.1` | MoE | 141B | Classic Mixtral |
-| `z-ai/glm-5.1` | Dense | 1T* | Agentic workflows |
-
-*GLM-5.1 parameters include all tokens processed, not just active parameters.
+| Model | Type | Description |
+|-------|------|----------|
+| `deepseek-ai/deepseek-v4-flash` | MoE | Fast MoE model optimized for speed and coding |
+| `deepseek-ai/deepseek-v4-pro` | MoE | Professional-grade DeepSeek with advanced reasoning |
+| `deepseek-ai/deepseek-v3.2` | MoE | Latest DeepSeek version with improved reasoning capabilities |
+| `z-ai/glm-5.1` | Dense | Advanced GLM model with superior code understanding |
+| `z-ai/glm-4.7` | Dense | GLM model with strong mathematical capabilities |
+| `minimax/minimax-m2.7` | MoE | Efficient MiniMax model for fast inference |
+| `minimax/minimax-m2.5` | MoE | Previous generation MiniMax with balanced performance |
+| `nvidia/nemotron-3-super-120b-a12b` | MoE | NVIDIA's flagship 120B model |
+| `nvidia/nemotron-4-340b-instruct` | MoE | NVIDIA's latest 340B instruction-tuned model |
+| `nvidia/llama-3.1-nemotron-ultra-253b-v1` | Dense | Ultra-large Nemotron with Llama foundation (253B) |
+| `moonshotai/kimi-k2.5` | Dense | Kimi model optimized for context understanding |
+| `moonshotai/kimi-k2-instruct` | Dense | Instruction-tuned Kimi model |
+| `gpt-oss/gpt-oss-120b` | Dense | Open-source 120B model with strong performance |
+| `google/gemma-4-31b-it` | Dense | Lightweight Gemma model for edge inference |
+| `qwen/qwen3-coder-480b-a35b-instruct` | Dense | Specialized coding model with 480B parameters |
+| `qwen/qwen2.5-coder-32b-instruct` | Dense | Lightweight Qwen coding model (32B) |
+| `qwen/qwen3.5-397b-a17b` | Dense | Flagship Qwen model with advanced capabilities |
+| `mistralai/devstral-2-123b-instruct-2512` | MoE | Mistral developer-focused model (123B) |
+| `mistralai/mistral-large-3-675b-instruct-2512` | Dense | Mistral's largest model with 675B parameters |
+| `meta/llama-3.1-405b-instruct` | Dense | Meta's largest and most capable Llama model (405B) |
 
 ## Architecture
 
@@ -239,11 +257,18 @@ Each model is tested with:
 - **Max tokens**: 500
 - **Format**: OpenAI chat completions compatible
 
-## Hosting Options
+## Hosting
 
-### GitHub Pages (Free & Recommended)
+This project is hosted on **Cloudflare** at [nimstats.maurodruwel.be](https://nimstats.maurodruwel.be/). The static site is deployed automatically whenever new benchmark results are pushed.
 
-Already configured! Just enable it in settings.
+### GitHub Pages (Alternative)
+
+For self-hosting on GitHub Pages:
+
+1. Go to **Settings** → **Pages**
+2. Under "Source", select **Deploy from a branch**
+3. Select **main** branch and **/ (root)** folder
+4. Click **Save**
 
 ### Netlify
 

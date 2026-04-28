@@ -882,8 +882,9 @@
                 const shortName = m.model.split('/')[1];
                 const status = m.success ? `<span class="status-success"><span class="status-dot-small" style="background: #76b900;"></span>Pass</span>` :
                     `<span class="status-fail"><span class="status-dot-small" style="background: #f87171;"></span>Fail</span>`;
+                const canClick = m.success && m.response;
 
-                return `<tr onclick="m.success && m.response && showModal('${shortName}', '${btoa(m.response)}')">
+                return `<tr${canClick ? ` style="cursor: pointer;" onclick="showModalByIndex(${i})"` : ''}>
                     <td>${shortName}</td>
                     <td>${status}</td>
                     <td>${m.success ? (m.responseTime / 1000).toFixed(2) + 's' : '—'}</td>
@@ -914,11 +915,14 @@
             document.getElementById('historyBody').innerHTML = html;
         }
 
-        function showModal(title, b64) {
-            const modal = document.getElementById('modal');
-            document.getElementById('modalTitle').textContent = title;
-            document.getElementById('modalBody').textContent = atob(b64);
-            modal.classList.add('active');
+        function showModalByIndex(modelIndex) {
+            const m = state.currentRun.models[modelIndex];
+            if (m.success && m.response) {
+                const shortName = m.model.split('/')[1];
+                document.getElementById('modalTitle').textContent = shortName;
+                document.getElementById('modalBody').textContent = m.response;
+                document.getElementById('modal').classList.add('active');
+            }
         }
 
         function closeModal() {
