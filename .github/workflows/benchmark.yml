@@ -24,7 +24,7 @@ jobs:
           cd scripts && bash test-models.sh
       
       - name: Upload group1 results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: results-group1
           path: scripts/results-group1.json
@@ -48,7 +48,7 @@ jobs:
           cd scripts && bash test-models.sh
       
       - name: Upload group2 results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: results-group2
           path: scripts/results-group2.json
