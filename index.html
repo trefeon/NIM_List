@@ -5,32 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NIMStats — NVIDIA NIM Benchmark Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         :root {
-            --bg-0: #0a0e27;
-            --bg-1: #111633;
-            --bg-2: #16213e;
-            --bg-3: #1d2d4d;
-            --border: rgba(139, 92, 246, 0.1);
-            --border-strong: rgba(139, 92, 246, 0.2);
-            --accent: #8b5cf6;
-            --accent-light: #a78bfa;
-            --accent-dark: #7c3aed;
+            --bg: #ffffff;
+            --bg-secondary: #f9fafb;
+            --bg-tertiary: #f3f4f6;
+            --border: #e5e7eb;
+            --border-strong: #d1d5db;
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --text-tertiary: #9ca3af;
+            --accent: #3b82f6;
+            --accent-dark: #1f2937;
             --success: #10b981;
-            --success-light: #34d399;
             --danger: #ef4444;
             --warning: #f59e0b;
-            --text-0: #f8fafc;
-            --text-1: #cbd5e1;
-            --text-2: #94a3b8;
-            --text-3: #64748b;
-            --mono: 'JetBrains Mono', 'Fira Code', monospace;
             --sans: 'Inter', -apple-system, sans-serif;
-            --gradient-1: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-            --gradient-2: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            --gradient-3: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
         }
 
         * { box-sizing: border-box; }
@@ -38,8 +30,8 @@
             margin: 0;
             padding: 0;
             font-family: var(--sans);
-            background: var(--bg-0);
-            color: var(--text-0);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
             font-size: 14px;
             line-height: 1.6;
         }
@@ -49,9 +41,8 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            height: 64px;
-            background: rgba(10, 14, 39, 0.95);
-            backdrop-filter: blur(20px);
+            height: 60px;
+            background: var(--bg);
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
@@ -62,41 +53,38 @@
         .nav-brand {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             font-weight: 700;
-            font-size: 18px;
-            background: var(--gradient-1);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 16px;
+            color: var(--accent);
         }
 
         .brand-icon {
-            width: 32px;
-            height: 32px;
-            background: var(--gradient-1);
-            border-radius: 8px;
+            width: 28px;
+            height: 28px;
+            background: var(--accent);
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-weight: 700;
-            font-size: 18px;
+            font-size: 16px;
         }
 
         .nav-tabs {
             display: flex;
-            gap: 28px;
+            gap: 32px;
             flex: 1;
         }
 
         .nav-tab {
-            color: var(--text-2);
+            color: var(--text-secondary);
             text-decoration: none;
             font-size: 13px;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             border: none;
             background: none;
             padding: 8px 0;
@@ -104,11 +92,11 @@
         }
 
         .nav-tab:hover {
-            color: var(--accent-light);
+            color: var(--accent);
         }
 
         .nav-tab.active {
-            color: var(--accent-light);
+            color: var(--accent);
         }
 
         .nav-tab.active::after {
@@ -117,9 +105,8 @@
             bottom: -12px;
             left: 0;
             right: 0;
-            height: 3px;
-            background: var(--gradient-1);
-            border-radius: 2px;
+            height: 2px;
+            background: var(--accent);
         }
 
         .nav-status {
@@ -127,22 +114,20 @@
             align-items: center;
             gap: 8px;
             font-size: 12px;
-            color: var(--text-2);
+            color: var(--text-secondary);
             margin-left: auto;
         }
 
         .status-dot {
             width: 8px;
             height: 8px;
-            background: var(--success-light);
+            background: var(--success);
             border-radius: 50%;
-            box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
             animation: pulse 2s infinite;
         }
 
         .status-dot.offline {
             background: var(--danger);
-            box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
         }
 
         @keyframes pulse {
@@ -150,9 +135,9 @@
             50% { opacity: 0.5; }
         }
 
-        /* Main Layout */
+        /* Main */
         main {
-            max-width: 1600px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 32px 28px;
         }
@@ -163,12 +148,6 @@
 
         section.active {
             display: block;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
         }
 
         .section-header {
@@ -181,157 +160,93 @@
 
         .section-header h1 {
             margin: 0;
-            font-size: 32px;
+            font-size: 28px;
             font-weight: 700;
-            background: var(--gradient-1);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--text-primary);
         }
 
         .section-meta {
             display: flex;
             align-items: center;
             gap: 16px;
-            color: var(--text-2);
+            color: var(--text-secondary);
             font-size: 13px;
         }
 
         .btn-icon {
-            background: rgba(139, 92, 246, 0.1);
-            border: 1px solid var(--border-strong);
-            color: var(--accent-light);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--accent);
             width: 36px;
             height: 36px;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             font-size: 16px;
         }
 
         .btn-icon:hover {
-            background: rgba(139, 92, 246, 0.2);
-            transform: rotate(180deg);
+            background: var(--border);
         }
 
         /* KPI Grid */
         .kpi-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 16px;
             margin-bottom: 32px;
         }
 
         .kpi-card {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%);
+            background: var(--bg);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 8px;
             padding: 20px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .kpi-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--gradient-1);
+            transition: all 0.2s ease;
         }
 
         .kpi-card:hover {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
             border-color: var(--border-strong);
-            transform: translateY(-4px);
-            box-shadow: 0 12px 32px rgba(139, 92, 246, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
 
         .kpi-label {
-            font-size: 12px;
+            font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 0.8px;
-            color: var(--text-3);
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
             font-weight: 600;
             margin-bottom: 8px;
         }
 
         .kpi-value {
-            font-size: 32px;
-            font-weight: 800;
-            background: var(--gradient-1);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 8px;
-            font-variant-numeric: tabular-nums;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 4px;
         }
 
         .kpi-sub {
             font-size: 12px;
-            color: var(--text-2);
+            color: var(--text-tertiary);
         }
 
-        .kpi-sparkline {
-            margin-top: 12px;
-            height: 24px;
-            opacity: 0.7;
-        }
-
-        /* Secondary KPI Grid */
-        .secondary-kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px;
-            margin-bottom: 32px;
-        }
-
-        .secondary-kpi {
-            background: rgba(139, 92, 246, 0.05);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 12px 16px;
-            font-size: 12px;
-        }
-
-        .secondary-kpi-label {
-            color: var(--text-3);
-            font-weight: 500;
-            margin-bottom: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .secondary-kpi-value {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--accent-light);
-        }
-
-        /* Charts Grid */
+        /* Charts */
         .charts-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
             gap: 16px;
             margin-bottom: 32px;
         }
 
         .chart-card {
-            background: linear-gradient(135deg, rgba(17, 22, 51, 0.5) 0%, rgba(29, 45, 77, 0.5) 100%);
+            background: var(--bg);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 8px;
             padding: 20px;
-            transition: all 0.3s ease;
-        }
-
-        .chart-card:hover {
-            border-color: var(--border-strong);
-            box-shadow: 0 16px 48px rgba(139, 92, 246, 0.1);
         }
 
         .chart-header {
@@ -343,96 +258,94 @@
 
         .chart-header h3 {
             margin: 0;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
-            color: var(--text-0);
+            color: var(--text-primary);
         }
 
         .chart-label {
             font-size: 12px;
-            color: var(--text-3);
-            font-weight: 500;
+            color: var(--text-tertiary);
         }
 
         .chart-container {
             position: relative;
-            height: 300px;
+            height: 280px;
         }
 
         /* Prompt Card */
         .prompt-card {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+            background: var(--bg);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 8px;
             padding: 20px;
             margin-bottom: 32px;
         }
 
         .prompt-label {
-            font-size: 12px;
+            font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 0.8px;
-            color: var(--text-3);
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
             font-weight: 600;
             margin-bottom: 12px;
         }
 
         .prompt-text {
-            font-family: var(--mono);
+            font-family: 'Monaco', 'Courier New', monospace;
             font-size: 13px;
-            color: var(--text-1);
+            color: var(--text-primary);
             line-height: 1.6;
             white-space: pre-wrap;
             word-break: break-word;
         }
 
-        /* Table Styles */
+        /* Tables */
         .table-wrapper {
             overflow-x: auto;
-            border-radius: 12px;
+            border-radius: 8px;
             border: 1px solid var(--border);
             margin-bottom: 32px;
+            background: var(--bg);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            background: rgba(17, 22, 51, 0.3);
         }
 
         thead {
-            background: rgba(139, 92, 246, 0.05);
-            border-bottom: 2px solid var(--border);
-            position: sticky;
-            top: 0;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border);
         }
 
         th {
             padding: 12px 16px;
             text-align: left;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: var(--text-2);
+            color: var(--text-secondary);
         }
 
         td {
             padding: 12px 16px;
             border-bottom: 1px solid var(--border);
             font-size: 13px;
-            color: var(--text-1);
+            color: var(--text-primary);
         }
 
-        tr:hover {
-            background: rgba(139, 92, 246, 0.05);
+        tbody tr:hover {
+            background: var(--bg-tertiary);
         }
 
         .status-success {
             display: flex;
             align-items: center;
             gap: 6px;
-            color: var(--success-light);
+            color: var(--success);
+            font-weight: 500;
         }
 
         .status-fail {
@@ -440,6 +353,7 @@
             align-items: center;
             gap: 6px;
             color: var(--danger);
+            font-weight: 500;
         }
 
         .status-dot-small {
@@ -452,13 +366,13 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            color: var(--text-2);
+            color: var(--text-secondary);
         }
 
         .sort-btn {
-            background: rgba(139, 92, 246, 0.1);
+            background: var(--bg-tertiary);
             border: 1px solid var(--border);
-            color: var(--text-2);
+            color: var(--text-secondary);
             padding: 6px 12px;
             border-radius: 6px;
             cursor: pointer;
@@ -468,9 +382,9 @@
         }
 
         .sort-btn:hover, .sort-btn.active {
-            background: var(--gradient-1);
+            background: var(--accent);
             color: white;
-            border-color: transparent;
+            border-color: var(--accent);
         }
 
         /* Modal */
@@ -481,8 +395,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(8px);
+            background: rgba(0, 0, 0, 0.2);
             z-index: 200;
             align-items: center;
             justify-content: center;
@@ -494,44 +407,41 @@
         }
 
         .modal {
-            background: linear-gradient(135deg, var(--bg-2) 0%, var(--bg-3) 100%);
-            border: 1px solid var(--border-strong);
-            border-radius: 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
             max-width: 900px;
             width: 100%;
             max-height: 85vh;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
         }
 
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 24px;
+            padding: 20px;
             border-bottom: 1px solid var(--border);
         }
 
         .modal-header h3 {
             margin: 0;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
-            background: var(--gradient-1);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--accent);
         }
 
         .modal-close {
             background: none;
             border: none;
-            color: var(--text-2);
-            font-size: 24px;
+            color: var(--text-secondary);
+            font-size: 20px;
             cursor: pointer;
             padding: 0;
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -539,61 +449,85 @@
         }
 
         .modal-close:hover {
-            color: var(--accent-light);
+            color: var(--text-primary);
         }
 
         .modal-body {
             overflow-y: auto;
             flex: 1;
-            padding: 24px;
-            font-family: var(--mono);
+            padding: 20px;
+            font-family: 'Monaco', 'Courier New', monospace;
             font-size: 12px;
-            line-height: 1.7;
+            line-height: 1.6;
             white-space: pre-wrap;
             word-break: break-word;
-            color: var(--text-1);
+            color: var(--text-primary);
         }
 
-        /* Analytics Section */
-        .analytics-grid {
+        /* Model Stats */
+        .model-stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 16px;
             margin-bottom: 32px;
         }
 
-        .analytics-card {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%);
+        .model-stat-card {
+            background: var(--bg);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 8px;
             padding: 16px;
-            transition: all 0.3s ease;
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
-        .analytics-card:hover {
+        .model-stat-card:hover {
             border-color: var(--border-strong);
-            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.08);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
 
-        .analytics-title {
+        .model-name {
             font-size: 13px;
             font-weight: 600;
-            color: var(--text-1);
+            color: var(--text-primary);
             margin-bottom: 12px;
+            word-break: break-word;
         }
 
-        .analytics-content {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--accent-light);
+        .model-stat {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
         }
 
-        /* Loading & Error */
+        .model-stat:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .model-stat-label {
+            color: var(--text-tertiary);
+        }
+
+        .model-stat-value {
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .model-stat-uptime {
+            color: var(--success);
+        }
+
         .loading, .error {
             text-align: center;
             padding: 48px 20px;
-            color: var(--text-2);
-            font-size: 14px;
+            color: var(--text-secondary);
         }
 
         .error {
@@ -604,10 +538,6 @@
         @media (max-width: 1024px) {
             .charts-grid {
                 grid-template-columns: 1fr;
-            }
-
-            .kpi-grid {
-                grid-template-columns: repeat(2, 1fr);
             }
         }
 
@@ -631,20 +561,11 @@
             }
 
             .kpi-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .secondary-kpi-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
 
-            .charts-grid {
+            .model-stats-grid {
                 grid-template-columns: 1fr;
-            }
-
-            th, td {
-                padding: 10px 12px;
-                font-size: 12px;
             }
 
             .sort-controls {
@@ -667,9 +588,9 @@
             <span>NIMStats</span>
         </div>
         <div class="nav-tabs">
-            <button class="nav-tab active" data-section="overview">Dashboard</button>
-            <button class="nav-tab" data-section="analytics">Analytics</button>
-            <button class="nav-tab" data-section="latest">Results</button>
+            <button class="nav-tab active" data-section="dashboard">Dashboard</button>
+            <button class="nav-tab" data-section="models">Models</button>
+            <button class="nav-tab" data-section="results">Results</button>
             <button class="nav-tab" data-section="history">History</button>
         </div>
         <div class="nav-status">
@@ -679,10 +600,10 @@
     </nav>
 
     <main>
-        <!-- Overview Section -->
-        <section id="overview" class="active">
+        <!-- Dashboard -->
+        <section id="dashboard" class="active">
             <div class="section-header">
-                <h1>Performance Dashboard</h1>
+                <h1>Dashboard</h1>
                 <div class="section-meta">
                     <span id="lastUpdated">—</span>
                     <button class="btn-icon" id="refreshBtn" title="Refresh">⟳</button>
@@ -698,12 +619,12 @@
                 <div class="kpi-card">
                     <div class="kpi-label">Success Rate</div>
                     <div class="kpi-value" id="kpiSuccess">—</div>
-                    <div class="kpi-sub" id="kpiSuccessSub">models passing</div>
+                    <div class="kpi-sub" id="kpiSuccessSub">latest run</div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-label">Fastest Model</div>
                     <div class="kpi-value" id="kpiFastest">—</div>
-                    <div class="kpi-sub" id="kpiFastestSub">response time</div>
+                    <div class="kpi-sub" id="kpiFastestSub">ms</div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-label">Best Throughput</div>
@@ -712,30 +633,11 @@
                 </div>
             </div>
 
-            <div class="secondary-kpi-grid">
-                <div class="secondary-kpi">
-                    <div class="secondary-kpi-label">Avg Response Time</div>
-                    <div class="secondary-kpi-value" id="statAvgTime">—</div>
-                </div>
-                <div class="secondary-kpi">
-                    <div class="secondary-kpi-label">Avg Throughput</div>
-                    <div class="secondary-kpi-value" id="statAvgThroughput">—</div>
-                </div>
-                <div class="secondary-kpi">
-                    <div class="secondary-kpi-label">Slowest Model</div>
-                    <div class="secondary-kpi-value" id="statSlowest">—</div>
-                </div>
-                <div class="secondary-kpi">
-                    <div class="secondary-kpi-label">Models Tested</div>
-                    <div class="secondary-kpi-value" id="statModelsCount">—</div>
-                </div>
-            </div>
-
             <div class="charts-grid">
                 <div class="chart-card">
                     <div class="chart-header">
-                        <h3>Response Times (Latest Run)</h3>
-                        <span class="chart-label">sorted by speed</span>
+                        <h3>Response Times</h3>
+                        <span class="chart-label">latest run</span>
                     </div>
                     <div class="chart-container">
                         <canvas id="chartTimes"></canvas>
@@ -743,7 +645,7 @@
                 </div>
                 <div class="chart-card">
                     <div class="chart-header">
-                        <h3>Success Rate Trend</h3>
+                        <h3>Success Trend</h3>
                         <span class="chart-label">last 20 runs</span>
                     </div>
                     <div class="chart-container">
@@ -752,7 +654,7 @@
                 </div>
                 <div class="chart-card">
                     <div class="chart-header">
-                        <h3>Throughput Distribution</h3>
+                        <h3>Throughput</h3>
                         <span class="chart-label">tokens per second</span>
                     </div>
                     <div class="chart-container">
@@ -761,106 +663,44 @@
                 </div>
                 <div class="chart-card">
                     <div class="chart-header">
-                        <h3>Model Performance Scatter</h3>
-                        <span class="chart-label">speed vs throughput</span>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="chartScatter"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <div class="prompt-card">
-                <div class="prompt-label">📋 Benchmark Prompt</div>
-                <div class="prompt-text" id="promptText">—</div>
-            </div>
-        </section>
-
-        <!-- Analytics Section -->
-        <section id="analytics">
-            <div class="section-header">
-                <h1>Advanced Analytics</h1>
-                <div class="section-meta">
-                    <span id="analyticsTimestamp">—</span>
-                </div>
-            </div>
-
-            <div class="analytics-grid">
-                <div class="analytics-card">
-                    <div class="analytics-title">📈 Fastest Model</div>
-                    <div class="analytics-content" id="analyticsFirst">—</div>
-                </div>
-                <div class="analytics-card">
-                    <div class="analytics-title">🐢 Slowest Model</div>
-                    <div class="analytics-content" id="analyticsSlowest">—</div>
-                </div>
-                <div class="analytics-card">
-                    <div class="analytics-title">⚡ Best Throughput</div>
-                    <div class="analytics-content" id="analyticsBestTps">—</div>
-                </div>
-                <div class="analytics-card">
-                    <div class="analytics-title">📊 Avg Success Rate</div>
-                    <div class="analytics-content" id="analyticsAvgSuccess">—</div>
-                </div>
-                <div class="analytics-card">
-                    <div class="analytics-title">�� Consistency Score</div>
-                    <div class="analytics-content" id="analyticsConsistency">—</div>
-                </div>
-                <div class="analytics-card">
-                    <div class="analytics-title">⏱️ Median Response Time</div>
-                    <div class="analytics-content" id="analyticsMedian">—</div>
-                </div>
-            </div>
-
-            <div class="charts-grid">
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3>Success Trend (All Time)</h3>
-                        <span class="chart-label">successful models per run</span>
+                        <h3>All Time Trend</h3>
+                        <span class="chart-label">success count</span>
                     </div>
                     <div class="chart-container">
                         <canvas id="chartHistory"></canvas>
                     </div>
                 </div>
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3>Response Time Distribution</h3>
-                        <span class="chart-label">histogram</span>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="chartDistribution"></canvas>
-                    </div>
-                </div>
             </div>
 
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Model</th>
-                            <th>Avg Response</th>
-                            <th>Best Response</th>
-                            <th>Avg Throughput</th>
-                            <th>Success Rate</th>
-                            <th>Total Runs</th>
-                        </tr>
-                    </thead>
-                    <tbody id="analyticsTableBody">
-                        <tr><td colspan="6" class="loading">Loading analytics...</td></tr>
-                    </tbody>
-                </table>
+            <div class="prompt-card">
+                <div class="prompt-label">Benchmark Prompt</div>
+                <div class="prompt-text" id="promptText">—</div>
             </div>
         </section>
 
-        <!-- Latest Results Section -->
-        <section id="latest">
+        <!-- Models -->
+        <section id="models">
+            <div class="section-header">
+                <h1>Model Performance</h1>
+                <div class="section-meta">
+                    <span id="modelCount">—</span>
+                </div>
+            </div>
+
+            <div class="model-stats-grid" id="modelStatsGrid">
+                <div style="text-align: center; grid-column: 1/-1; padding: 40px; color: var(--text-secondary);">Loading models...</div>
+            </div>
+        </section>
+
+        <!-- Results -->
+        <section id="results">
             <div class="section-header">
                 <h1>Latest Results</h1>
                 <div class="sort-controls">
                     <span>Sort By:</span>
-                    <button class="sort-btn active" data-sort="time">⚡ Speed</button>
-                    <button class="sort-btn" data-sort="tokens">💾 Throughput</button>
-                    <button class="sort-btn" data-sort="name">📛 Name</button>
+                    <button class="sort-btn active" data-sort="time">Speed</button>
+                    <button class="sort-btn" data-sort="tokens">Throughput</button>
+                    <button class="sort-btn" data-sort="name">Name</button>
                 </div>
             </div>
 
@@ -884,7 +724,7 @@
             </div>
         </section>
 
-        <!-- History Section -->
+        <!-- History -->
         <section id="history">
             <div class="section-header">
                 <h1>Benchmark History</h1>
@@ -895,10 +735,10 @@
 
             <div class="chart-card" style="margin-bottom: 32px;">
                 <div class="chart-header">
-                    <h3>Success Trend Over Time</h3>
-                    <span class="chart-label">all recorded runs</span>
+                    <h3>Success Over Time</h3>
+                    <span class="chart-label">all runs</span>
                 </div>
-                <div class="chart-container" style="height: 350px;">
+                <div class="chart-container" style="height: 300px;">
                     <canvas id="chartHistoryOverTime"></canvas>
                 </div>
             </div>
@@ -908,10 +748,10 @@
                     <thead>
                         <tr>
                             <th>Timestamp</th>
-                            <th>Success Rate</th>
+                            <th>Success</th>
+                            <th>Rate</th>
                             <th>Fastest Model</th>
                             <th>Fastest Time</th>
-                            <th>Avg Response</th>
                         </tr>
                     </thead>
                     <tbody id="historyBody">
@@ -933,7 +773,7 @@
     </div>
 
     <script>
-        const CHART_COLORS = ['#8b5cf6', '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1'];
+        const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316', '#6366f1', '#14b8a6'];
         let state = {
             history: null,
             currentRun: null,
@@ -942,7 +782,6 @@
             modelStats: {}
         };
 
-        // Navigation
         document.querySelectorAll('.nav-tab').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const section = e.target.dataset.section;
@@ -953,7 +792,6 @@
             });
         });
 
-        // Sort Controls
         document.querySelectorAll('.sort-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 state.sortField = e.target.dataset.sort;
@@ -1008,7 +846,7 @@
                             totalResponseTime: 0,
                             bestResponseTime: Infinity,
                             totalThroughput: 0,
-                            responseTimeSamples: []
+                            responseTimes: []
                         };
                     }
                     const stats = state.modelStats[m.model];
@@ -1017,9 +855,8 @@
                         stats.successRuns++;
                         stats.totalResponseTime += m.responseTime;
                         stats.bestResponseTime = Math.min(stats.bestResponseTime, m.responseTime);
-                        const tps = m.tokensGenerated / (m.responseTime / 1000);
-                        stats.totalThroughput += tps;
-                        stats.responseTimeSamples.push(m.responseTime);
+                        stats.totalThroughput += m.tokensGenerated / (m.responseTime / 1000);
+                        stats.responseTimes.push(m.responseTime);
                     }
                 });
             });
@@ -1029,15 +866,14 @@
             renderKPIs();
             renderCharts();
             renderModelsTable();
+            renderModelStats();
             renderHistoryTable();
-            renderAnalytics();
             updateTimestamp();
         }
 
         function updateTimestamp() {
             const date = new Date(state.currentRun.timestamp);
             document.getElementById('lastUpdated').textContent = date.toLocaleString();
-            document.getElementById('analyticsTimestamp').textContent = date.toLocaleString();
             document.getElementById('promptText').textContent = state.currentRun.prompt;
         }
 
@@ -1048,52 +884,31 @@
             const successRate = ((successCount / totalModels) * 100).toFixed(0);
 
             let bestTokensPerSec = 0;
-            let avgResponseTime = 0;
-            let slowestTime = 0;
-            const successfulModels = state.currentRun.models.filter(m => m.success);
-            
-            successfulModels.forEach(m => {
-                if (m.responseTime > 0) {
-                    const tps = (m.tokensGenerated / (m.responseTime / 1000));
-                    if (tps > bestTokensPerSec) bestTokensPerSec = tps;
-                    avgResponseTime += m.responseTime;
-                    slowestTime = Math.max(slowestTime, m.responseTime);
+            state.currentRun.models.forEach(m => {
+                if (m.success && m.responseTime > 0) {
+                    const tps = m.tokensGenerated / (m.responseTime / 1000);
+                    bestTokensPerSec = Math.max(bestTokensPerSec, tps);
                 }
             });
-            avgResponseTime /= Math.max(successfulModels.length, 1);
 
             document.getElementById('kpiTotal').textContent = total;
             document.getElementById('kpiSuccess').textContent = `${successRate}%`;
             document.getElementById('kpiSuccessSub').textContent = `${successCount}/${totalModels} passing`;
-            document.getElementById('kpiFastest').textContent = (fastestTime / 1000).toFixed(2) + 's';
+            document.getElementById('kpiFastest').textContent = (fastestTime / 1000).toFixed(2);
             document.getElementById('kpiFastestSub').textContent = fastestModel.split('/')[1];
             document.getElementById('kpiBest').textContent = bestTokensPerSec.toFixed(0);
-
-            document.getElementById('statAvgTime').textContent = (avgResponseTime / 1000).toFixed(2) + 's';
-            document.getElementById('statAvgThroughput').textContent = (state.currentRun.models.reduce((acc, m) => {
-                if (m.success && m.responseTime > 0) return acc + (m.tokensGenerated / (m.responseTime / 1000));
-                return acc;
-            }, 0) / Math.max(successfulModels.length, 1)).toFixed(0);
-            document.getElementById('statSlowest').textContent = (slowestTime / 1000).toFixed(2) + 's';
-            document.getElementById('statModelsCount').textContent = totalModels;
         }
 
         function renderCharts() {
             renderResponseTimeChart();
             renderSuccessTrendChart();
             renderThroughputChart();
-            renderScatterChart();
             renderHistoryChart();
-            renderDistributionChart();
             renderHistoryOverTimeChart();
         }
 
         function renderResponseTimeChart() {
-            const successful = state.currentRun.models
-                .filter(m => m.success)
-                .sort((a, b) => a.responseTime - b.responseTime)
-                .slice(0, 15);
-
+            const successful = state.currentRun.models.filter(m => m.success).sort((a, b) => a.responseTime - b.responseTime).slice(0, 12);
             const ctx = document.getElementById('chartTimes').getContext('2d');
             if (state.charts.times) state.charts.times.destroy();
 
@@ -1102,30 +917,20 @@
                 data: {
                     labels: successful.map(m => m.model.split('/')[1]),
                     datasets: [{
-                        label: 'Response Time (seconds)',
+                        label: 'Response Time (s)',
                         data: successful.map(m => (m.responseTime / 1000).toFixed(2)),
-                        backgroundColor: CHART_COLORS.map((c, i) => c),
-                        borderRadius: 6,
-                        borderSkipped: false
+                        backgroundColor: CHART_COLORS[0],
+                        borderRadius: 4
                     }]
                 },
                 options: {
                     indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', padding: 12, titleFont: { size: 13 } }
-                    },
+                    plugins: { legend: { display: false } },
                     scales: {
-                        x: {
-                            grid: { color: 'rgba(139,92,246,0.1)' },
-                            ticks: { color: 'rgba(255,255,255,0.5)' }
-                        },
-                        y: {
-                            grid: { display: false },
-                            ticks: { color: 'rgba(255,255,255,0.7)' }
-                        }
+                        x: { grid: { color: '#e5e7eb', drawBorder: false }, ticks: { color: '#6b7280' } },
+                        y: { grid: { display: false }, ticks: { color: '#6b7280' } }
                     }
                 }
             });
@@ -1133,7 +938,6 @@
 
         function renderSuccessTrendChart() {
             const last20 = state.history.runs.slice(0, 20).reverse();
-
             const ctx = document.getElementById('chartTrend').getContext('2d');
             if (state.charts.trend) state.charts.trend.destroy();
 
@@ -1144,14 +948,12 @@
                     datasets: [{
                         label: 'Success Count',
                         data: last20.map(r => r.summary.successCount),
-                        borderColor: '#8b5cf6',
-                        backgroundColor: 'rgba(139,92,246,0.1)',
+                        borderColor: CHART_COLORS[0],
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
                         fill: true,
                         tension: 0.4,
-                        pointRadius: 5,
-                        pointBackgroundColor: '#8b5cf6',
-                        pointBorderColor: 'rgba(139,92,246,0.3)',
-                        pointBorderWidth: 2
+                        pointRadius: 4,
+                        pointBackgroundColor: CHART_COLORS[0]
                     }]
                 },
                 options: {
@@ -1159,8 +961,8 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        y: { min: 0, grid: { color: 'rgba(139,92,246,0.1)' }, ticks: { color: 'rgba(255,255,255,0.5)' } },
-                        x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)' } }
+                        y: { grid: { color: '#e5e7eb' }, ticks: { color: '#6b7280' } },
+                        x: { grid: { display: false }, ticks: { color: '#6b7280' } }
                     }
                 }
             });
@@ -1168,8 +970,8 @@
 
         function renderThroughputChart() {
             const successful = state.currentRun.models.filter(m => m.success);
-            const data = successful.map(m => (m.tokensGenerated / (m.responseTime / 1000)).toFixed(0)).sort((a, b) => b - a).slice(0, 12);
-            const labels = successful.sort((a, b) => (b.tokensGenerated / (b.responseTime / 1000)) - (a.tokensGenerated / (a.responseTime / 1000))).slice(0, 12).map(m => m.model.split('/')[1]);
+            const data = successful.map(m => (m.tokensGenerated / (m.responseTime / 1000)).toFixed(0)).sort((a, b) => b - a).slice(0, 10);
+            const labels = successful.sort((a, b) => (b.tokensGenerated / (b.responseTime / 1000)) - (a.tokensGenerated / (a.responseTime / 1000))).slice(0, 10).map(m => m.model.split('/')[1]);
 
             const ctx = document.getElementById('chartThroughput').getContext('2d');
             if (state.charts.throughput) state.charts.throughput.destroy();
@@ -1179,10 +981,10 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Tokens/Second',
+                        label: 'Tokens/sec',
                         data: data,
-                        backgroundColor: '#10b981',
-                        borderRadius: 6
+                        backgroundColor: CHART_COLORS[1],
+                        borderRadius: 4
                     }]
                 },
                 options: {
@@ -1191,42 +993,8 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: { grid: { color: 'rgba(139,92,246,0.1)' }, ticks: { color: 'rgba(255,255,255,0.5)' } },
-                        y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.7)' } }
-                    }
-                }
-            });
-        }
-
-        function renderScatterChart() {
-            const successful = state.currentRun.models.filter(m => m.success);
-            const data = successful.map(m => ({
-                x: m.responseTime / 1000,
-                y: (m.tokensGenerated / (m.responseTime / 1000)).toFixed(0)
-            }));
-
-            const ctx = document.getElementById('chartScatter').getContext('2d');
-            if (state.charts.scatter) state.charts.scatter.destroy();
-
-            state.charts.scatter = new Chart(ctx, {
-                type: 'scatter',
-                data: {
-                    datasets: [{
-                        label: 'Models',
-                        data: data,
-                        backgroundColor: 'rgba(139,92,246,0.6)',
-                        borderColor: '#8b5cf6',
-                        borderWidth: 2,
-                        pointRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { title: { display: true, text: 'Response Time (s)', color: 'rgba(255,255,255,0.7)' }, grid: { color: 'rgba(139,92,246,0.1)' }, ticks: { color: 'rgba(255,255,255,0.5)' } },
-                        y: { title: { display: true, text: 'Throughput (tok/s)', color: 'rgba(255,255,255,0.7)' }, grid: { color: 'rgba(139,92,246,0.1)' }, ticks: { color: 'rgba(255,255,255,0.5)' } }
+                        x: { grid: { color: '#e5e7eb' }, ticks: { color: '#6b7280' } },
+                        y: { grid: { display: false }, ticks: { color: '#6b7280' } }
                     }
                 }
             });
@@ -1234,22 +1002,21 @@
 
         function renderHistoryChart() {
             const allRuns = state.history.runs.reverse();
-
             const ctx = document.getElementById('chartHistory').getContext('2d');
             if (state.charts.history) state.charts.history.destroy();
 
             state.charts.history = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: allRuns.map((r, i) => `Run ${i + 1}`),
+                    labels: allRuns.map((_, i) => `Run ${i + 1}`),
                     datasets: [{
                         label: 'Successful Models',
                         data: allRuns.map(r => r.summary.successCount),
-                        borderColor: '#10b981',
-                        backgroundColor: 'rgba(16,185,129,0.1)',
+                        borderColor: CHART_COLORS[1],
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
                         fill: true,
                         tension: 0.3,
-                        pointRadius: 3
+                        pointRadius: 2
                     }]
                 },
                 options: {
@@ -1257,49 +1024,8 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        y: { grid: { color: 'rgba(139,92,246,0.1)' }, ticks: { color: 'rgba(255,255,255,0.5)' } },
-                        x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)' } }
-                    }
-                }
-            });
-        }
-
-        function renderDistributionChart() {
-            const successful = state.currentRun.models.filter(m => m.success);
-            const times = successful.map(m => m.responseTime / 1000);
-            const bins = [0, 2, 4, 6, 8, 10, 20, 50];
-            const hist = Array(bins.length - 1).fill(0);
-            
-            times.forEach(t => {
-                for (let i = 0; i < bins.length - 1; i++) {
-                    if (t >= bins[i] && t < bins[i + 1]) {
-                        hist[i]++;
-                        break;
-                    }
-                }
-            });
-
-            const ctx = document.getElementById('chartDistribution').getContext('2d');
-            if (state.charts.distribution) state.charts.distribution.destroy();
-
-            state.charts.distribution = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: bins.slice(0, -1).map((b, i) => `${b}-${bins[i+1]}s`),
-                    datasets: [{
-                        label: 'Count',
-                        data: hist,
-                        backgroundColor: '#3b82f6',
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { grid: { color: 'rgba(139,92,246,0.1)' }, ticks: { color: 'rgba(255,255,255,0.5)' } },
-                        x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)' } }
+                        y: { grid: { color: '#e5e7eb' }, ticks: { color: '#6b7280' } },
+                        x: { grid: { display: false }, ticks: { color: '#6b7280' } }
                     }
                 }
             });
@@ -1307,7 +1033,6 @@
 
         function renderHistoryOverTimeChart() {
             const allRuns = state.history.runs.reverse();
-
             const ctx = document.getElementById('chartHistoryOverTime').getContext('2d');
             if (state.charts.historyTime) state.charts.historyTime.destroy();
 
@@ -1318,21 +1043,20 @@
                     datasets: [{
                         label: 'Successful Models',
                         data: allRuns.map(r => r.summary.successCount),
-                        borderColor: '#8b5cf6',
-                        backgroundColor: 'rgba(139,92,246,0.1)',
+                        borderColor: CHART_COLORS[0],
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
                         fill: true,
                         tension: 0.3,
-                        pointRadius: 4,
-                        pointBackgroundColor: '#8b5cf6'
+                        pointRadius: 3
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: true } },
+                    plugins: { legend: { display: false } },
                     scales: {
-                        y: { grid: { color: 'rgba(139,92,246,0.1)' }, ticks: { color: 'rgba(255,255,255,0.5)' } },
-                        x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)' } }
+                        y: { grid: { color: '#e5e7eb' }, ticks: { color: '#6b7280' } },
+                        x: { grid: { display: false }, ticks: { color: '#6b7280' } }
                     }
                 }
             });
@@ -1342,11 +1066,7 @@
             let models = [...state.currentRun.models];
 
             if (state.sortField === 'time') {
-                models.sort((a, b) => {
-                    if (!a.success) return 1;
-                    if (!b.success) return -1;
-                    return a.responseTime - b.responseTime;
-                });
+                models.sort((a, b) => { if (!a.success) return 1; if (!b.success) return -1; return a.responseTime - b.responseTime; });
             } else if (state.sortField === 'tokens') {
                 models.sort((a, b) => (b.tokensGenerated || 0) - (a.tokensGenerated || 0));
             } else {
@@ -1356,8 +1076,7 @@
             const html = models.map((m, i) => {
                 const tps = m.success && m.responseTime > 0 ? (m.tokensGenerated / (m.responseTime / 1000)).toFixed(0) : '—';
                 const shortName = m.model.split('/')[1];
-                const status = m.success ? `<span class="status-success"><span class="status-dot-small" style="background: #10b981;"></span>Pass</span>` :
-                    `<span class="status-fail"><span class="status-dot-small" style="background: #ef4444;"></span>Fail</span>`;
+                const status = m.success ? `<span class="status-success"><span class="status-dot-small" style="background: #10b981;"></span>Pass</span>` : `<span class="status-fail"><span class="status-dot-small" style="background: #ef4444;"></span>Fail</span>`;
                 const canClick = m.success && m.response;
 
                 return `<tr${canClick ? ` style="cursor: pointer;" onclick="showModalByIndex(${i})"` : ''}>
@@ -1367,76 +1086,60 @@
                     <td>${tps}</td>
                     <td>${m.tokensGenerated || '—'}</td>
                     <td>${m.totalTokens || '—'}</td>
-                    <td style="text-align: center; color: var(--text-2);">${m.response ? '→' : '✕'}</td>
+                    <td style="text-align: center; color: var(--text-secondary);">${m.response ? '→' : '✕'}</td>
                 </tr>`;
             }).join('');
 
             document.getElementById('modelsBody').innerHTML = html;
         }
 
-        function renderAnalytics() {
-            const currentSuccess = state.currentRun.models.filter(m => m.success);
-            const currentFailed = state.currentRun.models.filter(m => !m.success);
-            const allModels = state.currentRun.models;
-
-            const sortedBySpeed = currentSuccess.sort((a, b) => a.responseTime - b.responseTime);
-            const sortedByThroughput = currentSuccess.sort((a, b) => (b.tokensGenerated / (b.responseTime / 1000)) - (a.tokensGenerated / (a.responseTime / 1000)));
-
-            const avgSuccess = (state.history.runs.reduce((acc, r) => acc + (r.summary.successCount / r.summary.totalModels), 0) / state.history.runs.length * 100).toFixed(0);
+        function renderModelStats() {
+            document.getElementById('modelCount').textContent = `${Object.keys(state.modelStats).length} models`;
             
-            const responseTimes = currentSuccess.map(m => m.responseTime).sort((a, b) => a - b);
-            const median = responseTimes[Math.floor(responseTimes.length / 2)];
-
-            const consistency = (100 - (Math.max(...responseTimes) - Math.min(...responseTimes)) / Math.max(...responseTimes) * 100).toFixed(0);
-
-            document.getElementById('analyticsFirst').textContent = sortedBySpeed[0]?.model.split('/')[1] || '—';
-            document.getElementById('analyticsSlowest').textContent = sortedBySpeed[sortedBySpeed.length - 1]?.model.split('/')[1] || '—';
-            document.getElementById('analyticsBestTps').textContent = sortedByThroughput[0]?.model.split('/')[1] || '—';
-            document.getElementById('analyticsAvgSuccess').textContent = avgSuccess + '%';
-            document.getElementById('analyticsConsistency').textContent = consistency + '%';
-            document.getElementById('analyticsMedian').textContent = (median / 1000).toFixed(2) + 's';
-
-            renderAnalyticsTable();
-        }
-
-        function renderAnalyticsTable() {
             const html = Object.entries(state.modelStats)
+                .sort((a, b) => b[1].successRuns - a[1].successRuns)
                 .map(([model, stats]) => {
-                    if (stats.successRuns === 0) return '';
-                    const avgResponse = (stats.totalResponseTime / stats.successRuns / 1000).toFixed(2);
-                    const avgTps = (stats.totalThroughput / stats.successRuns).toFixed(0);
-                    const successRate = ((stats.successRuns / stats.totalRuns) * 100).toFixed(0);
+                    const uptime = ((stats.successRuns / stats.totalRuns) * 100).toFixed(0);
+                    const avgTime = stats.successRuns > 0 ? (stats.totalResponseTime / stats.successRuns / 1000).toFixed(2) : '—';
+                    const avgTps = stats.successRuns > 0 ? (stats.totalThroughput / stats.successRuns).toFixed(0) : '—';
                     const shortName = model.split('/')[1];
-                    return `<tr>
-                        <td>${shortName}</td>
-                        <td>${avgResponse}s</td>
-                        <td>${(stats.bestResponseTime / 1000).toFixed(2)}s</td>
-                        <td>${avgTps} tok/s</td>
-                        <td>${successRate}%</td>
-                        <td>${stats.totalRuns}</td>
-                    </tr>`;
+
+                    return `<div class="model-stat-card">
+                        <div class="model-name">${shortName}</div>
+                        <div class="model-stat">
+                            <span class="model-stat-label">Uptime</span>
+                            <span class="model-stat-value model-stat-uptime">${uptime}%</span>
+                        </div>
+                        <div class="model-stat">
+                            <span class="model-stat-label">Avg Response</span>
+                            <span class="model-stat-value">${avgTime}s</span>
+                        </div>
+                        <div class="model-stat">
+                            <span class="model-stat-label">Avg Throughput</span>
+                            <span class="model-stat-value">${avgTps} tok/s</span>
+                        </div>
+                        <div class="model-stat">
+                            <span class="model-stat-label">Success Runs</span>
+                            <span class="model-stat-value">${stats.successRuns}/${stats.totalRuns}</span>
+                        </div>
+                    </div>`;
                 }).join('');
 
-            document.getElementById('analyticsTableBody').innerHTML = html || '<tr><td colspan="6" class="error">No data</td></tr>';
+            document.getElementById('modelStatsGrid').innerHTML = html || '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">No model data available</div>';
         }
 
         function renderHistoryTable() {
             document.getElementById('historyCount').textContent = `${state.history.runs.length} runs`;
-            const html = state.history.runs.slice(0, 50).map(r => {
+            const html = state.history.runs.slice(0, 30).map(r => {
                 const rate = ((r.summary.successCount / r.summary.totalModels) * 100).toFixed(0);
                 const date = new Date(r.timestamp).toLocaleString();
                 const fastest = r.summary.fastestModel.split('/')[1];
-                const avgTime = (state.history.runs.slice(0, 50).reduce((acc, run) => acc + (run.summary.fastestTime || 0), 0) / Math.min(state.history.runs.length, 50) / 1000).toFixed(2);
                 return `<tr>
                     <td>${date}</td>
+                    <td>${r.summary.successCount}/${r.summary.totalModels}</td>
                     <td>${rate}%</td>
                     <td>${fastest}</td>
                     <td>${(r.summary.fastestTime / 1000).toFixed(2)}s</td>
-                    <td>${(state.history.runs.slice(0, Math.max(1, Object.keys(state.history.runs).indexOf(r) + 1)).reduce((acc, run) => {
-                        const successful = run.models.filter(m => m.success);
-                        const avg = successful.length > 0 ? successful.reduce((a, m) => a + m.responseTime, 0) / successful.length : 0;
-                        return acc + avg;
-                    }, 0) / Math.max(1, Object.keys(state.history.runs).indexOf(r) + 1) / 1000).toFixed(2)}s</td>
                 </tr>`;
             }).join('');
             document.getElementById('historyBody').innerHTML = html;
