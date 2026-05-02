@@ -1,1095 +1,1473 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NIMStats — NVIDIA NIM Benchmark Dashboard</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <style>
-        :root {
-            --bg-primary: #ffffff;
-            --bg-secondary: #f8f9fa;
-            --bg-tertiary: #f0f2f5;
-            --text-primary: #1a1a1a;
-            --text-secondary: #4a4a4a;
-            --text-tertiary: #888888;
-            --border-color: #e0e0e0;
-            --accent: #0066cc;
-            --accent-light: #e6f0ff;
-            --success: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --sans: 'Inter', -apple-system, sans-serif;
-            --mono: 'Courier New', monospace;
-        }
-
-        * { box-sizing: border-box; }
-        html, body {
-            margin: 0;
-            padding: 0;
-            font-family: var(--sans);
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            line-height: 1.5;
-        }
-
-        /* Navigation */
-        nav {
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            background: var(--bg-primary);
-            border-bottom: 1px solid var(--border-color);
-            height: 56px;
-            display: flex;
-            align-items: center;
-            padding: 0 24px;
-            gap: 32px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-
-        .nav-brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 600;
-            font-size: 16px;
-            color: var(--text-primary);
-        }
-
-        .brand-icon {
-            width: 24px;
-            height: 24px;
-            background: var(--accent);
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 700;
-            font-size: 14px;
-        }
-
-        .nav-tabs {
-            display: flex;
-            gap: 24px;
-            flex: 1;
-        }
-
-        .nav-tab {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            padding: 8px 0;
-            transition: color 0.2s;
-            position: relative;
-        }
-
-        .nav-tab:hover, .nav-tab.active {
-            color: var(--accent);
-        }
-
-        .nav-tab.active::after {
-            content: '';
-            position: absolute;
-            bottom: -12px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: var(--accent);
-        }
-
-        .nav-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 12px;
-            color: var(--text-tertiary);
-            margin-left: auto;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background: var(--success);
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        .status-dot.offline {
-            background: var(--danger);
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-
-        /* Main */
-        main {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 32px 24px;
-        }
-
-        section {
-            display: none;
-        }
-
-        section.active {
-            display: block;
-            animation: fadeIn 0.2s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            gap: 16px;
-        }
-
-        .section-header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .section-meta {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: var(--text-tertiary);
-            font-size: 12px;
-        }
-
-        .btn-icon {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            color: var(--accent);
-            width: 32px;
-            height: 32px;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-            font-size: 16px;
-        }
-
-        .btn-icon:hover {
-            background: var(--accent-light);
-        }
-
-        /* KPI Grid */
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        .kpi-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 16px;
-            transition: all 0.2s;
-        }
-
-        .kpi-card:hover {
-            background: var(--bg-tertiary);
-            border-color: var(--accent);
-        }
-
-        .kpi-label {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-tertiary);
-            font-weight: 600;
-            margin-bottom: 6px;
-        }
-
-        .kpi-value {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--accent);
-            margin-bottom: 4px;
-        }
-
-        .kpi-sub {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        /* Charts Grid */
-        .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        .chart-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 16px;
-            transition: all 0.2s;
-        }
-
-        .chart-card:hover {
-            border-color: var(--accent);
-        }
-
-        .chart-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .chart-header h3 {
-            margin: 0;
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .chart-label {
-            font-size: 11px;
-            color: var(--text-tertiary);
-        }
-
-        .chart-container {
-            position: relative;
-            height: 250px;
-        }
-
-        /* Table Styles */
-        .table-wrapper {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            overflow: hidden;
-            margin-bottom: 24px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        thead {
-            background: var(--bg-tertiary);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        th {
-            padding: 12px 16px;
-            text-align: left;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-secondary);
-        }
-
-        td {
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
-
-        tr:hover {
-            background: var(--bg-tertiary);
-        }
-
-        .status-success {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--success);
-            font-weight: 500;
-        }
-
-        .status-fail {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--danger);
-            font-weight: 500;
-        }
-
-        .status-dot-small {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-        }
-
-        .sort-controls {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--text-secondary);
-        }
-
-        .sort-btn {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .sort-btn:hover, .sort-btn.active {
-            background: var(--accent);
-            color: white;
-            border-color: var(--accent);
-        }
-
-        /* Model Grid (Per-Model View) */
-        .model-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        .model-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 16px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .model-card:hover {
-            border-color: var(--accent);
-            box-shadow: 0 4px 12px rgba(0,102,204,0.08);
-            transform: translateY(-2px);
-        }
-
-        .model-name {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 12px;
-            word-break: break-all;
-        }
-
-        .model-stat {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            font-size: 12px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .model-stat:last-child {
-            border-bottom: none;
-        }
-
-        .model-stat-label {
-            color: var(--text-tertiary);
-        }
-
-        .model-stat-value {
-            font-weight: 600;
-            color: var(--accent);
-        }
-
-        /* Modal */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.3);
-            z-index: 200;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .modal-overlay.active {
-            display: flex;
-        }
-
-        .modal {
-            background: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            max-width: 800px;
-            width: 100%;
-            max-height: 85vh;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .modal-header h3 {
-            margin: 0;
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            color: var(--text-tertiary);
-            font-size: 20px;
-            cursor: pointer;
-            padding: 0;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: color 0.2s;
-        }
-
-        .modal-close:hover {
-            color: var(--text-primary);
-        }
-
-        .modal-body {
-            overflow-y: auto;
-            flex: 1;
-            padding: 20px;
-            font-family: var(--mono);
-            font-size: 12px;
-            line-height: 1.6;
-            white-space: pre-wrap;
-            word-break: break-word;
-            color: var(--text-secondary);
-        }
-
-        .loading, .error {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--text-tertiary);
-        }
-
-        .error {
-            color: var(--danger);
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            nav {
-                flex-wrap: wrap;
-                height: auto;
-                gap: 12px;
-                padding: 12px 16px;
-            }
-
-            main {
-                padding: 16px;
-            }
-
-            .section-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .section-header h1 {
-                font-size: 22px;
-            }
-
-            .kpi-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .charts-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .model-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .sort-controls {
-                flex-direction: column;
-                align-items: flex-start;
-                width: 100%;
-                margin-top: 12px;
-            }
-
-            .sort-btn {
-                width: 100%;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIMStats — AI Model Benchmark Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #080810;
+  --bg-card: #0d0d1a;
+  --bg-card2: #121220;
+  --bg-hover: #181828;
+  --border: #1c1c2e;
+  --border-bright: #252538;
+  --accent: #76b900;
+  --accent-dim: rgba(118,185,0,0.12);
+  --accent-glow: 0 0 20px rgba(118,185,0,0.25);
+  --blue: #00c8ff;
+  --purple: #a855f7;
+  --text: #e2e2f0;
+  --text-dim: #8888aa;
+  --text-muted: #3a3a5a;
+  --success: #22c55e;
+  --success-dim: rgba(34,197,94,0.1);
+  --danger: #ef4444;
+  --danger-dim: rgba(239,68,68,0.1);
+  --warning: #f59e0b;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100vh;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);line-height:1.5;overflow-x:hidden}
+
+/* Animated background */
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:
+  radial-gradient(ellipse 80% 60% at 20% 0%,rgba(118,185,0,0.06) 0%,transparent 60%),
+  radial-gradient(ellipse 60% 40% at 80% 100%,rgba(0,200,255,0.04) 0%,transparent 60%),
+  var(--bg);animation:bgShift 20s ease-in-out infinite alternate}
+@keyframes bgShift{
+  0%{background-position:0% 0%,100% 100%}
+  100%{background-position:5% 10%,95% 90%}
+}
+
+/* Nav */
+nav{position:sticky;top:0;z-index:200;background:rgba(8,8,16,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);height:60px;display:flex;align-items:center;padding:0 24px;gap:4px}
+.nav-brand{font-size:18px;font-weight:800;color:var(--accent);letter-spacing:-0.5px;margin-right:20px;white-space:nowrap}
+.nav-brand span{color:var(--text-dim);font-weight:300}
+.nav-tabs{display:flex;gap:2px;flex:1}
+.nav-tab{background:none;border:none;color:var(--text-dim);font-family:'Inter',sans-serif;font-size:13px;font-weight:500;padding:8px 14px;border-radius:var(--radius-sm);cursor:pointer;transition:all 0.2s;white-space:nowrap}
+.nav-tab:hover{color:var(--text);background:var(--bg-hover)}
+.nav-tab.active{color:var(--accent);background:var(--accent-dim)}
+.nav-status{margin-left:auto;font-size:12px;color:var(--text-dim);font-family:'JetBrains Mono',monospace}
+
+/* Loading */
+#loading{position:fixed;inset:0;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);gap:20px}
+.spinner{width:48px;height:48px;border:3px solid var(--border-bright);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading p{color:var(--text-dim);font-size:14px}
+#app{opacity:0;transition:opacity 0.4s}
+#app.visible{opacity:1}
+
+/* Error state */
+#error-state{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;text-align:center;padding:40px}
+#error-state .err-icon{font-size:48px}
+#error-state h2{color:var(--danger);font-size:20px}
+#error-state p{color:var(--text-dim);font-size:14px;max-width:400px}
+
+/* Main layout */
+main{max-width:1400px;margin:0 auto;padding:28px 24px}
+section[data-tab]{display:none}
+section[data-tab].active{display:block}
+
+/* KPI Cards */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:28px}
+@media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+.kpi-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden;transition:border-color 0.2s,box-shadow 0.2s}
+.kpi-card::before{content:'';position:absolute;inset:0;border-radius:var(--radius);background:linear-gradient(135deg,rgba(118,185,0,0.04),transparent);pointer-events:none}
+.kpi-card:hover{border-color:var(--border-bright);box-shadow:var(--accent-glow)}
+.kpi-icon{font-size:20px;margin-bottom:10px}
+.kpi-value{font-size:28px;font-weight:800;color:var(--text);font-family:'JetBrains Mono',monospace;line-height:1}
+.kpi-label{font-size:12px;color:var(--text-dim);margin-top:6px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px}
+.kpi-sub{font-size:11px;color:var(--accent);margin-top:4px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi-accent{color:var(--accent)}
+
+/* Cards */
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;transition:border-color 0.2s}
+.card:hover{border-color:var(--border-bright)}
+.card-title{font-size:13px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+.card-title .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);flex-shrink:0}
+
+/* Chart grids */
+.chart-row{display:grid;gap:20px;margin-bottom:20px}
+.chart-row-2{grid-template-columns:1fr 1fr}
+.chart-row-3{grid-template-columns:2fr 2fr 1.5fr}
+@media(max-width:900px){.chart-row-2,.chart-row-3{grid-template-columns:1fr}}
+.chart-wrap{position:relative;height:220px}
+.chart-wrap-lg{position:relative;height:260px}
+
+/* Reliability pills */
+.reliability-grid{display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start}
+.rel-pill{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid transparent;transition:all 0.2s;cursor:default}
+.rel-pill.green{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.25);color:#22c55e}
+.rel-pill.yellow{background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.25);color:#f59e0b}
+.rel-pill.red{background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.25);color:#ef4444}
+.rel-pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+/* Leaderboard */
+.table-controls{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.search-input{background:var(--bg-card);border:1px solid var(--border-bright);border-radius:var(--radius-sm);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;padding:8px 14px;width:280px;transition:border-color 0.2s;outline:none}
+.search-input:focus{border-color:var(--accent)}
+.search-input::placeholder{color:var(--text-muted)}
+.table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:var(--bg-card2);color:var(--text-dim);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.6px;padding:12px 16px;text-align:left;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:1px solid var(--border)}
+thead th:hover{color:var(--text)}
+thead th.sorted{color:var(--accent)}
+thead th .sort-arrow{margin-left:4px;opacity:0.5}
+thead th.sorted .sort-arrow{opacity:1}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s;cursor:pointer}
+tbody tr:hover{background:var(--bg-hover)}
+tbody tr:last-child{border-bottom:none}
+td{padding:10px 16px;color:var(--text);vertical-align:middle}
+.rank-num{color:var(--text-dim);font-weight:600;font-family:'JetBrains Mono',monospace;font-size:12px;width:32px}
+.rank-num.top3{color:var(--accent)}
+.provider-chip{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-right:6px;flex-shrink:0}
+.model-name-cell{display:flex;align-items:center;gap:0;max-width:240px}
+.model-name-text{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.score-cell{display:flex;align-items:center;gap:8px}
+.score-num{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px}
+.uptime-cell{display:flex;flex-direction:column;gap:4px;min-width:90px}
+.uptime-val{font-family:'JetBrains Mono',monospace;font-size:13px}
+.uptime-bar{height:3px;border-radius:2px;background:var(--border);overflow:hidden}
+.uptime-fill{height:100%;border-radius:2px;transition:width 0.6s ease}
+.mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+.trend-indicator{font-size:12px;font-weight:700}
+.trend-up{color:var(--success)}
+.trend-down{color:var(--danger)}
+.trend-flat{color:var(--text-dim)}
+
+/* Explorer */
+.model-selector-wrap{margin-bottom:24px}
+.model-selector-label{font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px}
+.model-select{width:100%;background:var(--bg-card);border:1px solid var(--border-bright);border-radius:var(--radius);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;padding:12px 16px;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238888aa' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;cursor:pointer;outline:none;transition:border-color 0.2s}
+.model-select:focus{border-color:var(--accent)}
+.model-select option{background:var(--bg-card2);color:var(--text)}
+.explorer-header{display:flex;align-items:center;gap:12px;margin-bottom:24px;padding:16px 20px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)}
+.explorer-header .provider-chip{font-size:11px;padding:3px 10px}
+.explorer-header h2{font-size:16px;font-weight:700;color:var(--text);font-family:'JetBrains Mono',monospace}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+@media(max-width:700px){.stats-row{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;text-align:center}
+.stat-card .stat-val{font-size:22px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--text)}
+.stat-card .stat-label{font-size:11px;color:var(--text-dim);margin-top:4px;text-transform:uppercase;letter-spacing:0.5px}
+.stat-card .stat-sub{font-size:11px;color:var(--text-muted);margin-top:3px}
+
+/* Heatmap */
+.heatmap{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin-top:12px}
+.heatmap-cell{aspect-ratio:1;border-radius:3px;position:relative;cursor:default;transition:transform 0.15s}
+.heatmap-cell:hover{transform:scale(1.3);z-index:10}
+.heatmap-cell.pass{background:rgba(34,197,94,0.6)}
+.heatmap-cell.fail{background:rgba(239,68,68,0.5)}
+.heatmap-cell.miss{background:var(--border)}
+
+/* Run history table */
+.run-table-wrap{overflow-x:auto}
+.run-table{width:100%;border-collapse:collapse;font-size:13px}
+.run-table th{background:var(--bg-card2);color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:0.6px;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);font-weight:600}
+.run-table td{padding:9px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+.run-table tr:last-child td{border-bottom:none}
+.status-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+.status-badge.ok{background:var(--success-dim);color:var(--success)}
+.status-badge.fail{background:var(--danger-dim);color:var(--danger)}
+.btn-view{background:var(--bg-card2);border:1px solid var(--border-bright);color:var(--text-dim);font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.2s}
+.btn-view:hover{color:var(--accent);border-color:var(--accent)}
+
+/* Timeline */
+.timeline-controls{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.run-badge{background:var(--accent-dim);border:1px solid rgba(118,185,0,0.3);color:var(--accent);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
+.filter-btns{display:flex;gap:6px}
+.filter-btn{background:var(--bg-card);border:1px solid var(--border);color:var(--text-dim);font-size:12px;padding:6px 14px;border-radius:20px;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.2s}
+.filter-btn:hover{border-color:var(--border-bright);color:var(--text)}
+.filter-btn.active{background:var(--accent-dim);border-color:rgba(118,185,0,0.3);color:var(--accent)}
+.run-cards{display:flex;flex-direction:column;gap:10px}
+.run-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color 0.2s}
+.run-card:hover{border-color:var(--border-bright)}
+.run-card-header{display:flex;align-items:center;gap:16px;padding:14px 18px;cursor:pointer;user-select:none}
+.run-card-time{font-size:13px;font-weight:600;color:var(--text);font-family:'JetBrains Mono',monospace;min-width:130px}
+.run-success-badge{padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.run-success-badge.green{background:var(--success-dim);color:var(--success)}
+.run-success-badge.yellow{background:rgba(245,158,11,0.1);color:var(--warning)}
+.run-success-badge.red{background:var(--danger-dim);color:var(--danger)}
+.run-fastest{font-size:12px;color:var(--text-dim);margin-left:auto;display:flex;align-items:center;gap:6px}
+.run-fastest span{color:var(--accent);font-weight:500}
+.run-expand-arrow{color:var(--text-muted);transition:transform 0.2s;font-size:12px}
+.run-card.expanded .run-expand-arrow{transform:rotate(180deg)}
+.run-card-body{display:none;border-top:1px solid var(--border);padding:0}
+.run-card.expanded .run-card-body{display:block}
+.run-detail-table{width:100%;font-size:12px;border-collapse:collapse}
+.run-detail-table th{padding:8px 14px;background:var(--bg-card2);color:var(--text-dim);font-size:10px;text-transform:uppercase;letter-spacing:0.5px;text-align:left;font-weight:600;border-bottom:1px solid var(--border)}
+.run-detail-table td{padding:7px 14px;border-bottom:1px solid var(--border);color:var(--text)}
+.run-detail-table tr:last-child td{border-bottom:none}
+.run-prompt{font-size:12px;color:var(--text-dim);padding:10px 18px;border-top:1px solid var(--border);font-style:italic;background:var(--bg-card2)}
+
+/* Compare */
+.compare-selectors{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:end;margin-bottom:24px}
+.selector-group label{font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:8px}
+.swap-btn{background:var(--bg-card);border:1px solid var(--border-bright);color:var(--text-dim);width:44px;height:44px;border-radius:50%;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;align-self:flex-end;flex-shrink:0}
+.swap-btn:hover{border-color:var(--accent);color:var(--accent);transform:rotate(180deg)}
+.h2h-table{width:100%;border-collapse:collapse}
+.h2h-table tr{border-bottom:1px solid var(--border)}
+.h2h-table tr:last-child{border-bottom:none}
+.h2h-table td{padding:10px 16px;font-size:13px}
+.h2h-table .h2h-label{color:var(--text-dim);font-size:12px;text-align:center}
+.h2h-table .h2h-metric{color:var(--text-dim);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;text-align:center;width:120px}
+.h2h-val-a,.h2h-val-b{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;text-align:center}
+.h2h-val-a.winner,.h2h-val-b.winner{color:var(--accent)}
+.h2h-row:hover{background:var(--bg-hover)}
+
+/* Modal */
+#modal{position:fixed;inset:0;z-index:500;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px)}
+#modal.open{display:flex;animation:fadeIn 0.2s}
+.modal-box{background:var(--bg-card);border:1px solid var(--border-bright);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-width:900px;max-height:85vh;display:flex;flex-direction:column;animation:slideUp 0.25s ease-out}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-header{display:flex;align-items:center;gap:12px;padding:18px 24px;border-bottom:1px solid var(--border);flex-shrink:0}
+.modal-title{font-size:14px;font-weight:600;color:var(--text);font-family:'JetBrains Mono',monospace;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.modal-close{background:none;border:none;color:var(--text-dim);font-size:20px;cursor:pointer;line-height:1;padding:4px 8px;border-radius:4px;transition:color 0.2s}
+.modal-close:hover{color:var(--text)}
+.modal-copy{background:var(--bg-card2);border:1px solid var(--border-bright);color:var(--text-dim);font-size:12px;padding:5px 12px;border-radius:var(--radius-sm);cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.2s}
+.modal-copy:hover{color:var(--accent);border-color:var(--accent)}
+.modal-body{flex:1;overflow-y:auto;padding:20px 24px}
+.modal-body pre{background:var(--bg-card2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;color:var(--accent);margin:12px 0}
+.modal-body p{margin-bottom:10px;color:var(--text);font-size:14px;line-height:1.7}
+.modal-body code{font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--bg-card2);padding:1px 5px;border-radius:3px;color:var(--blue)}
+
+/* Section headers */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.section-title{font-size:20px;font-weight:700;color:var(--text)}
+.section-sub{font-size:13px;color:var(--text-dim)}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
+
+/* Utility */
+.flex{display:flex}.gap-2{gap:8px}.gap-3{gap:12px}.items-center{align-items:center}
+.text-green{color:var(--success)}.text-red{color:var(--danger)}.text-yellow{color:var(--warning)}.text-accent{color:var(--accent)}.text-dim{color:var(--text-dim)}.text-blue{color:var(--blue)}
+.mt-4{margin-top:16px}.mb-4{margin-bottom:16px}
+.no-data{color:var(--text-dim);font-size:13px;text-align:center;padding:32px;font-style:italic}
+</style>
 </head>
 <body>
-    <nav>
-        <div class="nav-brand">
-            <div class="brand-icon">N</div>
-            <span>NIMStats</span>
-        </div>
-        <div class="nav-tabs">
-            <button class="nav-tab active" data-section="overview">Dashboard</button>
-            <button class="nav-tab" data-section="models">Models</button>
-            <button class="nav-tab" data-section="results">Results</button>
-            <button class="nav-tab" data-section="history">History</button>
-        </div>
-        <div class="nav-status">
-            <div class="status-dot" id="statusDot"></div>
-            <span id="statusText">Loading</span>
-        </div>
-    </nav>
 
-    <main>
-        <!-- Overview -->
-        <section id="overview" class="active">
-            <div class="section-header">
-                <h1>Dashboard</h1>
-                <div class="section-meta">
-                    <span id="lastUpdated">—</span>
-                    <button class="btn-icon" id="refreshBtn">⟳</button>
-                </div>
-            </div>
+<div id="loading">
+  <div class="spinner"></div>
+  <p>Loading benchmark data…</p>
+</div>
 
-            <div class="kpi-grid">
-                <div class="kpi-card">
-                    <div class="kpi-label">Total Runs</div>
-                    <div class="kpi-value" id="kpiTotal">—</div>
-                    <div class="kpi-sub">benchmarks</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Success Rate</div>
-                    <div class="kpi-value" id="kpiSuccess">—</div>
-                    <div class="kpi-sub" id="kpiSuccessSub">models</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Fastest Response</div>
-                    <div class="kpi-value" id="kpiFastest">—</div>
-                    <div class="kpi-sub" id="kpiFastestSub">model</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Best Throughput</div>
-                    <div class="kpi-value" id="kpiBest">—</div>
-                    <div class="kpi-sub">tok/s</div>
-                </div>
-            </div>
+<div id="app">
+  <nav>
+    <div class="nav-brand">NIM<span>Stats</span></div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-goto="overview">📊 Overview</button>
+      <button class="nav-tab" data-goto="leaderboard">🏆 Leaderboard</button>
+      <button class="nav-tab" data-goto="explorer">🔬 Explorer</button>
+      <button class="nav-tab" data-goto="timeline">⏱ Timeline</button>
+      <button class="nav-tab" data-goto="compare">⚔️ Compare</button>
+    </div>
+    <div class="nav-status" id="nav-status"></div>
+  </nav>
 
-            <div class="charts-grid">
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3>Response Times</h3>
-                        <span class="chart-label">latest run</span>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="chartTimes"></canvas>
-                    </div>
-                </div>
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3>Success Trend</h3>
-                        <span class="chart-label">last 20 runs</span>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="chartTrend"></canvas>
-                    </div>
-                </div>
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3>Throughput</h3>
-                        <span class="chart-label">tokens/second</span>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="chartThroughput"></canvas>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Models (Per-Model Details) -->
-        <section id="models">
-            <div class="section-header">
-                <h1>Model Performance</h1>
-            </div>
-
-            <div class="model-grid" id="modelGrid">
-                <div class="loading">Loading model data...</div>
-            </div>
-        </section>
-
-        <!-- Results -->
-        <section id="results">
-            <div class="section-header">
-                <h1>Latest Results</h1>
-                <div class="sort-controls">
-                    <span>Sort by:</span>
-                    <button class="sort-btn active" data-sort="time">Speed</button>
-                    <button class="sort-btn" data-sort="tokens">Throughput</button>
-                    <button class="sort-btn" data-sort="name">Name</button>
-                </div>
-            </div>
-
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Model</th>
-                            <th>Status</th>
-                            <th>Response Time</th>
-                            <th>Tokens/sec</th>
-                            <th>Generated</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody id="modelsBody">
-                        <tr><td colspan="6" class="loading">Loading...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- History -->
-        <section id="history">
-            <div class="section-header">
-                <h1>History</h1>
-                <div class="section-meta">
-                    <span id="historyCount">—</span>
-                </div>
-            </div>
-
-            <div class="chart-card" style="margin-bottom: 24px;">
-                <div class="chart-header">
-                    <h3>Success Trend Over Time</h3>
-                    <span class="chart-label">all runs</span>
-                </div>
-                <div class="chart-container" style="height: 300px;">
-                    <canvas id="chartHistory"></canvas>
-                </div>
-            </div>
-
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Timestamp</th>
-                            <th>Success</th>
-                            <th>Fastest Model</th>
-                            <th>Fastest Time</th>
-                        </tr>
-                    </thead>
-                    <tbody id="historyBody">
-                        <tr><td colspan="4" class="loading">Loading...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    </main>
-
-    <div class="modal-overlay" id="modal">
-        <div class="modal">
-            <div class="modal-header">
-                <h3 id="modalTitle">Response</h3>
-                <button class="modal-close" onclick="closeModal()">✕</button>
-            </div>
-            <div class="modal-body" id="modalBody"></div>
-        </div>
+  <main>
+    <div id="error-state">
+      <div class="err-icon">⚠️</div>
+      <h2>Failed to load benchmark data</h2>
+      <p id="error-msg">Could not fetch history.json. Make sure the file exists and you're serving this page via HTTP.</p>
     </div>
 
-    <script>
-        const COLORS = ['#0066cc', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1'];
-        let state = {
-            history: null,
-            currentRun: null,
-            charts: {},
-            sortField: 'time',
-            modelStats: {}
-        };
+    <!-- OVERVIEW -->
+    <section data-tab="overview" class="active">
+      <div class="section-header mb-4">
+        <div>
+          <div class="section-title">Dashboard Overview</div>
+          <div class="section-sub" id="overview-sub"></div>
+        </div>
+      </div>
+      <div class="kpi-grid" id="kpi-grid"></div>
+      <div class="chart-row chart-row-2" style="margin-bottom:20px">
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Success Count per Run</div>
+          <div class="chart-wrap"><canvas id="chart-success-count"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Success Rate Over Time</div>
+          <div class="chart-wrap"><canvas id="chart-success-rate"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-row chart-row-3">
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Top 10 Fastest Models (Avg)</div>
+          <div class="chart-wrap-lg"><canvas id="chart-fastest"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Top 10 Throughput (tok/s)</div>
+          <div class="chart-wrap-lg"><canvas id="chart-throughput"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Model Reliability</div>
+          <div class="reliability-grid" id="reliability-grid" style="height:260px;overflow-y:auto"></div>
+        </div>
+      </div>
+    </section>
 
-        document.querySelectorAll('.nav-tab').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const section = e.target.dataset.section;
-                document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
-                document.getElementById(section).classList.add('active');
-                document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-            });
-        });
+    <!-- LEADERBOARD -->
+    <section data-tab="leaderboard">
+      <div class="section-header mb-4">
+        <div>
+          <div class="section-title">Model Leaderboard</div>
+          <div class="section-sub">Ranked by composite score — click a row to explore that model</div>
+        </div>
+      </div>
+      <div class="table-controls">
+        <input class="search-input" id="lb-search" type="text" placeholder="🔍 Filter by model name…">
+      </div>
+      <div class="table-wrap">
+        <table id="lb-table">
+          <thead>
+            <tr>
+              <th data-col="rank" class="sorted"># <span class="sort-arrow">↓</span></th>
+              <th data-col="model">Model</th>
+              <th data-col="score">Score <span class="sort-arrow">↓</span></th>
+              <th data-col="uptime">Uptime <span class="sort-arrow"></span></th>
+              <th data-col="avgTime">Avg Time <span class="sort-arrow"></span></th>
+              <th data-col="bestTime">Best Time <span class="sort-arrow"></span></th>
+              <th data-col="avgTps">Throughput <span class="sort-arrow"></span></th>
+              <th data-col="wins">Wins <span class="sort-arrow"></span></th>
+              <th data-col="trend">Trend</th>
+            </tr>
+          </thead>
+          <tbody id="lb-body"></tbody>
+        </table>
+      </div>
+    </section>
 
-        document.querySelectorAll('.sort-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                state.sortField = e.target.dataset.sort;
-                document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                renderModelsTable();
-            });
-        });
+    <!-- EXPLORER -->
+    <section data-tab="explorer">
+      <div class="model-selector-wrap">
+        <div class="model-selector-label">Select Model</div>
+        <select class="model-select" id="explorer-select"></select>
+      </div>
+      <div class="explorer-header" id="explorer-header"></div>
+      <div class="stats-row" id="explorer-stats"></div>
+      <div class="chart-row chart-row-2" style="margin-bottom:20px">
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Response Time History</div>
+          <div class="chart-wrap-lg"><canvas id="chart-explorer-time"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Error Breakdown</div>
+          <div style="position:relative;height:260px;display:flex;align-items:center;justify-content:center">
+            <canvas id="chart-explorer-errors"></canvas>
+            <div id="explorer-no-errors" class="no-data" style="display:none">🎉 100% Success Rate — No Errors!</div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-row chart-row-2">
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Availability Heatmap</div>
+          <div class="heatmap" id="explorer-heatmap"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Run History (last 20)</div>
+          <div class="run-table-wrap">
+            <table class="run-table">
+              <thead><tr><th>Timestamp</th><th>Status</th><th>Response Time</th><th>Tok/s</th><th>Action</th></tr></thead>
+              <tbody id="explorer-run-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
 
-        document.getElementById('refreshBtn').addEventListener('click', init);
+    <!-- TIMELINE -->
+    <section data-tab="timeline">
+      <div class="section-header mb-4">
+        <div><div class="section-title">Run Timeline</div></div>
+      </div>
+      <div class="timeline-controls">
+        <div class="run-badge" id="timeline-badge"></div>
+        <div class="filter-btns">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="24h">Last 24h</button>
+          <button class="filter-btn" data-filter="48h">Last 48h</button>
+          <button class="filter-btn" data-filter="7d">Last 7d</button>
+        </div>
+      </div>
+      <div class="run-cards" id="run-cards"></div>
+    </section>
 
-        async function init() {
-            try {
-                const res = await fetch('history.json?' + Date.now());
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                state.history = await res.json();
-                
-                if (!state.history.runs || state.history.runs.length === 0) {
-                    throw new Error('No data available - run benchmark first');
-                }
-                
-                state.currentRun = state.history.runs[0];
-                calculateModelStats();
-                renderAll();
-                setStatus('online');
-            } catch (e) {
-                document.getElementById('modelsBody').innerHTML = `<tr><td colspan="6" class="error">${e.message}</td></tr>`;
-                setStatus('offline');
-            }
+    <!-- COMPARE -->
+    <section data-tab="compare">
+      <div class="section-header mb-4">
+        <div><div class="section-title">Model Comparison</div><div class="section-sub">Head-to-head analysis across all runs</div></div>
+      </div>
+      <div class="compare-selectors">
+        <div class="selector-group">
+          <label>Model A</label>
+          <select class="model-select" id="compare-a"></select>
+        </div>
+        <button class="swap-btn" id="swap-btn" title="Swap models">⇄</button>
+        <div class="selector-group">
+          <label>Model B</label>
+          <select class="model-select" id="compare-b"></select>
+        </div>
+      </div>
+      <div class="chart-row chart-row-2" style="margin-bottom:20px">
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Head-to-Head Stats</div>
+          <table class="h2h-table" id="h2h-table"></table>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Response Time Overlay</div>
+          <div class="chart-wrap-lg"><canvas id="chart-compare-time"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>Win Timeline (per run)</div>
+        <div class="chart-wrap"><canvas id="chart-compare-wins"></canvas></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Response Modal -->
+<div id="modal">
+  <div class="modal-box" id="modal-box">
+    <div class="modal-header">
+      <span class="provider-chip" id="modal-provider-chip"></span>
+      <div class="modal-title" id="modal-title"></div>
+      <button class="modal-copy" id="modal-copy">Copy</button>
+      <button class="modal-close" id="modal-close">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ─── Constants ───────────────────────────────────────────────────────────────
+const PROVIDER_META = {
+  'deepseek-ai': { name: 'DeepSeek', color: '#4d9de0' },
+  'z-ai':        { name: 'Z-AI',     color: '#11a883' },
+  'minimax':     { name: 'MiniMax',  color: '#7c3aed' },
+  'nvidia':      { name: 'NVIDIA',   color: '#76b900' },
+  'moonshotai':  { name: 'Moonshot', color: '#0891b2' },
+  'gpt-oss':     { name: 'GPT-OSS',  color: '#2563eb' },
+  'google':      { name: 'Google',   color: '#ea4335' },
+  'qwen':        { name: 'Qwen',     color: '#d97706' },
+  'mistralai':   { name: 'Mistral',  color: '#7e22ce' },
+  'meta':        { name: 'Meta',     color: '#1877f2' },
+};
+
+const MODEL_PALETTE = [
+  '#76b900','#00c8ff','#ff6b35','#a855f7','#22c55e',
+  '#f59e0b','#ec4899','#06b6d4','#84cc16','#6366f1',
+  '#10b981','#3b82f6','#ef4444','#8b5cf6','#14b8a6',
+  '#eab308','#d946ef','#fb923c','#e11d48','#64748b'
+];
+
+const CHART_DEFAULTS = {
+  tooltip: {
+    backgroundColor: '#1a1a2e',
+    borderColor: '#2a2a40',
+    borderWidth: 1,
+    titleColor: '#e2e2f0',
+    bodyColor: '#8888aa',
+    padding: 12,
+    cornerRadius: 8,
+    displayColors: true
+  }
+};
+
+Chart.defaults.color = '#666688';
+Chart.defaults.borderColor = '#1c1c2e';
+Chart.defaults.font.family = "'Inter', sans-serif";
+
+// ─── State ────────────────────────────────────────────────────────────────────
+const state = {
+  runs: [],
+  modelNames: [],
+  modelStats: {},
+  charts: {},
+  currentTab: 'overview',
+  explorerModel: 'qwen/qwen3-coder-480b-a35b-instruct',
+  lbSort: { col: 'score', dir: 'desc' },
+  lbFilter: '',
+  timelineFilter: 'all',
+  modalResponse: ''
+};
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function avg(arr) {
+  if (!arr.length) return 0;
+  return arr.reduce((a, b) => a + b, 0) / arr.length;
+}
+
+function fmtMs(ms) {
+  if (ms == null) return '—';
+  return (ms / 1000).toFixed(2) + 's';
+}
+
+function fmtTps(tps) {
+  if (tps == null || tps <= 0) return '—';
+  return tps.toFixed(1) + ' t/s';
+}
+
+function fmtPct(v) {
+  return (v * 100).toFixed(1) + '%';
+}
+
+function shortModel(m) {
+  return m.split('/')[1] || m;
+}
+
+function getProvider(m) {
+  return m.split('/')[0];
+}
+
+function providerMeta(m) {
+  const p = getProvider(m);
+  return PROVIDER_META[p] || { name: p, color: '#666688' };
+}
+
+function providerChip(m, small) {
+  const pm = providerMeta(m);
+  const s = small ? 'font-size:10px;padding:1px 6px' : 'font-size:11px;padding:2px 8px';
+  return `<span class="provider-chip" style="background:${pm.color}22;color:${pm.color};border:1px solid ${pm.color}44;${s}">${pm.name}</span>`;
+}
+
+function fmtTimestamp(ts) {
+  const d = new Date(ts);
+  return d.toLocaleString('en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+function fmtTimestampShort(ts) {
+  const d = new Date(ts);
+  const mo = d.toLocaleString('en', { month: 'short' });
+  const day = d.getDate();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${mo}${day} ${hh}:${mm}`;
+}
+
+function categorizeError(err) {
+  if (!err) return 'Unknown';
+  if (err.includes('timed out')) return 'Timeout';
+  if (err.includes('JSON')) return 'JSON Error';
+  if (err.includes('404')) return 'Not Found (404)';
+  if (err.includes('410')) return 'Gone (410)';
+  if (err.includes('closed connection')) return 'Connection Closed';
+  return 'Other Error';
+}
+
+function modelColor(model) {
+  const idx = state.modelNames.indexOf(model);
+  return MODEL_PALETTE[idx % MODEL_PALETTE.length];
+}
+
+function destroyChart(key) {
+  if (state.charts[key]) {
+    state.charts[key].destroy();
+    delete state.charts[key];
+  }
+}
+
+function animateCounter(el, target, duration = 1200, decimals = 0, suffix = '') {
+  const start = performance.now();
+  const update = (now) => {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    const val = target * ease;
+    el.textContent = (decimals ? val.toFixed(decimals) : Math.round(val)) + suffix;
+    if (progress < 1) requestAnimationFrame(update);
+  };
+  requestAnimationFrame(update);
+}
+
+function sparklineSVG(values, width = 80, height = 24, color = '#76b900') {
+  const valid = values.filter(v => v !== null);
+  if (valid.length < 2) return `<svg width="${width}" height="${height}"></svg>`;
+  const min = Math.min(...valid), max = Math.max(...valid);
+  const range = max - min || 1;
+  const pts = [];
+  let lastX = 0, lastY = 0;
+  values.forEach((v, i) => {
+    if (v === null) return;
+    const x = (i / (values.length - 1)) * width;
+    const y = height - 2 - ((v - min) / range) * (height - 4);
+    pts.push([x, y]);
+    lastX = x; lastY = y;
+  });
+  if (pts.length < 2) return `<svg width="${width}" height="${height}"></svg>`;
+  const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  return `<svg width="${width}" height="${height}" style="overflow:visible"><path d="${d}" stroke="${color}" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="2.5" fill="${color}"/></svg>`;
+}
+
+function renderMarkdown(text) {
+  if (!text) return '';
+  // Code blocks
+  text = text.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+    return `<pre><code class="lang-${lang}">${escHtml(code.trimEnd())}</code></pre>`;
+  });
+  // Inline code
+  text = text.replace(/`([^`]+)`/g, (_, c) => `<code>${escHtml(c)}</code>`);
+  // Bold
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Paragraphs
+  const lines = text.split('\n');
+  const out = [];
+  let inPre = false;
+  for (const line of lines) {
+    if (line.startsWith('<pre>')) inPre = true;
+    if (line.endsWith('</pre>')) { inPre = false; out.push(line); continue; }
+    if (inPre) { out.push(line); continue; }
+    if (line.trim() === '') { out.push(''); continue; }
+    out.push(`<p>${line}</p>`);
+  }
+  return out.join('\n');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ─── Data Processing ──────────────────────────────────────────────────────────
+function processData(data) {
+  const runs = [...data.runs].reverse(); // chronological
+  const modelNames = [...new Set(runs.flatMap(r => r.models.map(m => m.model)))];
+  const modelStats = {};
+
+  for (const model of modelNames) {
+    const results = runs.map(run => run.models.find(m => m.model === model) || null);
+    const successes = results.filter(r => r && r.success);
+    const times = successes.map(r => r.responseTime).filter(t => t > 0);
+    const tpsArr = successes
+      .filter(r => r.responseTime > 0)
+      .map(r => r.tokensGenerated / (r.responseTime / 1000));
+
+    modelStats[model] = {
+      results,
+      totalRuns: results.length,
+      successCount: successes.length,
+      uptime: successes.length / results.length,
+      responseTimes: results.map(r => (r && r.success && r.responseTime > 0) ? r.responseTime : null),
+      throughputs: results.map(r => (r && r.success && r.responseTime > 0)
+        ? r.tokensGenerated / (r.responseTime / 1000) : null),
+      avgTime: times.length ? avg(times) : null,
+      bestTime: times.length ? Math.min(...times) : null,
+      avgTps: tpsArr.length ? avg(tpsArr) : null,
+      wins: 0,
+      errors: {},
+      lastSeen: null,
+    };
+
+    // Last seen
+    for (let i = results.length - 1; i >= 0; i--) {
+      if (results[i] && results[i].success) {
+        state.modelStats; // placeholder
+        modelStats[model].lastSeen = runs[i]?.timestamp || null;
+        break;
+      }
+    }
+
+    // Errors
+    results.filter(r => r && !r.success && r.error).forEach(r => {
+      const t = categorizeError(r.error);
+      modelStats[model].errors[t] = (modelStats[model].errors[t] || 0) + 1;
+    });
+  }
+
+  // Wins
+  runs.forEach(run => {
+    const fm = run.summary?.fastestModel;
+    if (fm && modelStats[fm]) modelStats[fm].wins++;
+  });
+
+  // Scores
+  const validTimes = modelNames.filter(m => modelStats[m].avgTime != null).map(m => modelStats[m].avgTime);
+  const validTps = modelNames.filter(m => modelStats[m].avgTps != null).map(m => modelStats[m].avgTps);
+  const maxTime = validTimes.length ? Math.max(...validTimes) : 1;
+  const minTime = validTimes.length ? Math.min(...validTimes) : 0;
+  const maxTps = validTps.length ? Math.max(...validTps) : 1;
+  const minTps = validTps.length ? Math.min(...validTps) : 0;
+
+  for (const model of modelNames) {
+    const s = modelStats[model];
+    const speedScore = s.avgTime != null
+      ? (1 - (s.avgTime - minTime) / Math.max(maxTime - minTime, 1)) * 100 : 0;
+    const tpsScore = s.avgTps != null
+      ? ((s.avgTps - minTps) / Math.max(maxTps - minTps, 1)) * 100 : 0;
+    s.score = Math.round(s.uptime * 40 + speedScore * 0.3 + tpsScore * 0.3);
+
+    // Trend: compare first half vs second half avg response time
+    const half = Math.floor(s.responseTimes.length / 2);
+    const firstHalf = s.responseTimes.slice(0, half).filter(v => v != null);
+    const secondHalf = s.responseTimes.slice(half).filter(v => v != null);
+    if (firstHalf.length && secondHalf.length) {
+      const diff = avg(secondHalf) - avg(firstHalf);
+      s.trend = diff < -500 ? 'up' : diff > 500 ? 'down' : 'flat';
+    } else {
+      s.trend = 'flat';
+    }
+  }
+
+  return { runs, modelNames, modelStats };
+}
+
+// ─── Overview Tab ─────────────────────────────────────────────────────────────
+function renderOverview() {
+  const { runs, modelNames, modelStats } = state;
+
+  // KPIs
+  const totalRuns = runs.length;
+  const allUptimes = modelNames.map(m => modelStats[m].uptime);
+  const avgSuccessRate = avg(allUptimes) * 100;
+
+  let bestTimeModel = null, bestTimeVal = Infinity;
+  let bestTpsModel = null, bestTpsVal = 0;
+  for (const m of modelNames) {
+    const s = modelStats[m];
+    if (s.bestTime != null && s.bestTime < bestTimeVal) { bestTimeVal = s.bestTime; bestTimeModel = m; }
+    if (s.avgTps != null && s.avgTps > bestTpsVal) { bestTpsVal = s.avgTps; bestTpsModel = m; }
+  }
+  const mostReliable = [...modelNames].sort((a, b) => modelStats[b].uptime - modelStats[a].uptime)[0];
+
+  const kpiData = [
+    { icon: '🔁', label: 'Total Runs', val: totalRuns, sub: `${runs[0]?.timestamp?.slice(0,10)} → ${runs[runs.length-1]?.timestamp?.slice(0,10)}`, decimals: 0 },
+    { icon: '✅', label: 'Avg Success Rate', val: avgSuccessRate, suffix: '%', decimals: 1, sub: 'across all runs & models' },
+    { icon: '⚡', label: 'Best Response Time', val: bestTimeVal / 1000, suffix: 's', decimals: 2, sub: bestTimeModel ? shortModel(bestTimeModel) : '' },
+    { icon: '🚀', label: 'Best Throughput', val: bestTpsVal, suffix: ' t/s', decimals: 1, sub: bestTpsModel ? shortModel(bestTpsModel) : '' },
+    { icon: '🏅', label: 'Most Reliable', val: (modelStats[mostReliable]?.uptime || 0) * 100, suffix: '%', decimals: 1, sub: mostReliable ? shortModel(mostReliable) : '' },
+  ];
+
+  const kpiGrid = document.getElementById('kpi-grid');
+  kpiGrid.innerHTML = kpiData.map(k => `
+    <div class="kpi-card">
+      <div class="kpi-icon">${k.icon}</div>
+      <div class="kpi-value" id="kpi-val-${k.label.replace(/\s/g,'_')}">0${k.suffix||''}</div>
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>
+  `).join('');
+
+  kpiData.forEach(k => {
+    const el = document.getElementById('kpi-val-' + k.label.replace(/\s/g,'_'));
+    if (el) animateCounter(el, k.val, 1400, k.decimals || 0, k.suffix || '');
+  });
+
+  document.getElementById('overview-sub').textContent =
+    `${totalRuns} benchmark runs · ${modelNames.length} models · ${runs[0]?.timestamp?.slice(0,10)} to ${runs[runs.length-1]?.timestamp?.slice(0,10)}`;
+
+  // Charts
+  const labels = runs.map(r => fmtTimestampShort(r.timestamp));
+  const successCounts = runs.map(r => r.summary?.successCount ?? r.models.filter(m => m.success).length);
+  const successRates = runs.map(r => {
+    const total = r.summary?.totalModels || r.models.length;
+    const succ = r.summary?.successCount ?? r.models.filter(m => m.success).length;
+    return (succ / total) * 100;
+  });
+
+  destroyChart('successCount');
+  state.charts.successCount = new Chart(document.getElementById('chart-success-count'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Successes',
+        data: successCounts,
+        borderColor: '#76b900',
+        backgroundColor: 'rgba(118,185,0,0.08)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { ...CHART_DEFAULTS.tooltip, callbacks: {
+        title: (items) => `Run ${items[0].dataIndex + 1}: ${labels[items[0].dataIndex]}`
+      }}},
+      scales: {
+        x: { display: false },
+        y: { min: 0, max: 20, grid: { color: '#1c1c2e' }, ticks: { stepSize: 5 } }
+      }
+    }
+  });
+
+  destroyChart('successRate');
+  state.charts.successRate = new Chart(document.getElementById('chart-success-rate'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Success %',
+        data: successRates,
+        borderColor: '#00c8ff',
+        backgroundColor: 'rgba(0,200,255,0.06)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { ...CHART_DEFAULTS.tooltip, callbacks: {
+        label: (item) => `${item.raw.toFixed(1)}% success`
+      }}},
+      scales: {
+        x: { display: false },
+        y: { min: 0, max: 100, grid: { color: '#1c1c2e' }, ticks: { callback: v => v + '%' } }
+      }
+    }
+  });
+
+  // Top 10 Fastest
+  const modelsWithTime = modelNames
+    .filter(m => modelStats[m].avgTime != null)
+    .sort((a, b) => modelStats[a].avgTime - modelStats[b].avgTime)
+    .slice(0, 10);
+
+  destroyChart('fastest');
+  state.charts.fastest = new Chart(document.getElementById('chart-fastest'), {
+    type: 'bar',
+    data: {
+      labels: modelsWithTime.map(m => shortModel(m)),
+      datasets: [{
+        data: modelsWithTime.map(m => modelStats[m].avgTime / 1000),
+        backgroundColor: modelsWithTime.map((m, i) => i === 0 ? '#76b900' : '#76b90055'),
+        borderColor: modelsWithTime.map((m, i) => i === 0 ? '#76b900' : '#76b90088'),
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { ...CHART_DEFAULTS.tooltip, callbacks: {
+        label: (item) => `Avg: ${item.raw.toFixed(2)}s`
+      }}},
+      scales: {
+        x: { grid: { color: '#1c1c2e' }, ticks: { callback: v => v + 's' } },
+        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+
+  // Top 10 Throughput
+  const modelsWithTps = modelNames
+    .filter(m => modelStats[m].avgTps != null)
+    .sort((a, b) => modelStats[b].avgTps - modelStats[a].avgTps)
+    .slice(0, 10);
+
+  destroyChart('throughput');
+  state.charts.throughput = new Chart(document.getElementById('chart-throughput'), {
+    type: 'bar',
+    data: {
+      labels: modelsWithTps.map(m => shortModel(m)),
+      datasets: [{
+        data: modelsWithTps.map(m => modelStats[m].avgTps),
+        backgroundColor: modelsWithTps.map((m, i) => i === 0 ? '#00c8ff' : '#00c8ff44'),
+        borderColor: modelsWithTps.map((m, i) => i === 0 ? '#00c8ff' : '#00c8ff88'),
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { ...CHART_DEFAULTS.tooltip, callbacks: {
+        label: (item) => `${item.raw.toFixed(1)} tok/s`
+      }}},
+      scales: {
+        x: { grid: { color: '#1c1c2e' }, ticks: { callback: v => v + ' t/s' } },
+        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+
+  // Reliability pills
+  const grid = document.getElementById('reliability-grid');
+  const sorted = [...modelNames].sort((a, b) => modelStats[b].uptime - modelStats[a].uptime);
+  grid.innerHTML = sorted.map(m => {
+    const u = modelStats[m].uptime;
+    const cls = u >= 0.7 ? 'green' : u >= 0.4 ? 'yellow' : 'red';
+    return `<div class="rel-pill ${cls}"><span class="dot"></span>${shortModel(m)} <span style="opacity:0.7">${(u*100).toFixed(0)}%</span></div>`;
+  }).join('');
+}
+
+// ─── Leaderboard Tab ──────────────────────────────────────────────────────────
+function renderLeaderboard() {
+  const { modelNames, modelStats } = state;
+  const scores = [...modelNames].sort((a, b) => modelStats[b].score - modelStats[a].score);
+  const ranks = {};
+  scores.forEach((m, i) => { ranks[m] = i + 1; });
+
+  state.lbData = modelNames.map(m => ({ model: m, rank: ranks[m], ...modelStats[m] }));
+  renderLbTable();
+}
+
+function renderLbTable() {
+  const { lbData, lbSort, lbFilter } = state;
+  if (!lbData) return;
+
+  let rows = [...lbData];
+  if (lbFilter) {
+    rows = rows.filter(r => r.model.toLowerCase().includes(lbFilter.toLowerCase()));
+  }
+
+  rows.sort((a, b) => {
+    let av = a[lbSort.col], bv = b[lbSort.col];
+    if (av == null) av = lbSort.dir === 'asc' ? Infinity : -Infinity;
+    if (bv == null) bv = lbSort.dir === 'asc' ? Infinity : -Infinity;
+    return lbSort.dir === 'asc' ? av - bv : bv - av;
+  });
+
+  const tbody = document.getElementById('lb-body');
+  tbody.innerHTML = rows.map((r, i) => {
+    const uptimePct = (r.uptime * 100).toFixed(1);
+    const uptimeColor = r.uptime >= 0.7 ? '#22c55e' : r.uptime >= 0.4 ? '#f59e0b' : '#ef4444';
+    const scoreColor = r.score >= 60 ? '#22c55e' : r.score >= 40 ? '#f59e0b' : '#ef4444';
+    const trendHtml = r.trend === 'up'
+      ? `<span class="trend-indicator trend-up" title="Improving">↑</span>`
+      : r.trend === 'down'
+      ? `<span class="trend-indicator trend-down" title="Declining">↓</span>`
+      : `<span class="trend-indicator trend-flat" title="Stable">→</span>`;
+    const last10 = r.responseTimes.slice(-10);
+    const spark = sparklineSVG(last10, 72, 22, modelColor(r.model));
+    const isTop3 = r.rank <= 3;
+
+    return `<tr data-model="${r.model}">
+      <td><span class="rank-num${isTop3?' top3':''}">${r.rank}</span></td>
+      <td><div class="model-name-cell">${providerChip(r.model, true)}<span class="model-name-text" title="${r.model}">${shortModel(r.model)}</span>${trendHtml}</div></td>
+      <td><div class="score-cell"><span class="score-num" style="color:${scoreColor}">${r.score}</span></div></td>
+      <td><div class="uptime-cell"><span class="uptime-val" style="color:${uptimeColor}">${uptimePct}%</span><div class="uptime-bar"><div class="uptime-fill" style="width:${uptimePct}%;background:${uptimeColor}"></div></div></div></td>
+      <td class="mono">${r.avgTime ? (r.avgTime/1000).toFixed(2)+'s' : '—'}</td>
+      <td class="mono">${r.bestTime ? (r.bestTime/1000).toFixed(2)+'s' : '—'}</td>
+      <td class="mono">${r.avgTps ? r.avgTps.toFixed(1)+' t/s' : '—'}</td>
+      <td class="mono text-accent">${r.wins}</td>
+      <td>${spark}</td>
+    </tr>`;
+  }).join('');
+
+  // Row click → explorer
+  tbody.querySelectorAll('tr[data-model]').forEach(row => {
+    row.addEventListener('click', () => {
+      state.explorerModel = row.dataset.model;
+      switchTab('explorer');
+    });
+  });
+}
+
+function initLeaderboardSort() {
+  document.querySelectorAll('#lb-table thead th[data-col]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (col === 'model' || col === 'trend') return;
+      if (state.lbSort.col === col) {
+        state.lbSort.dir = state.lbSort.dir === 'desc' ? 'asc' : 'desc';
+      } else {
+        state.lbSort.col = col;
+        state.lbSort.dir = 'desc';
+      }
+      document.querySelectorAll('#lb-table thead th').forEach(t => t.classList.remove('sorted'));
+      th.classList.add('sorted');
+      th.querySelector('.sort-arrow').textContent = state.lbSort.dir === 'desc' ? '↓' : '↑';
+      renderLbTable();
+    });
+  });
+
+  document.getElementById('lb-search').addEventListener('input', e => {
+    state.lbFilter = e.target.value;
+    renderLbTable();
+  });
+}
+
+// ─── Explorer Tab ─────────────────────────────────────────────────────────────
+function populateExplorerSelect() {
+  const sel = document.getElementById('explorer-select');
+  const sorted = [...state.modelNames].sort((a,b) => state.modelStats[b].score - state.modelStats[a].score);
+  sel.innerHTML = sorted.map(m =>
+    `<option value="${m}"${m === state.explorerModel ? ' selected' : ''}>${shortModel(m)} (${providerMeta(m).name})</option>`
+  ).join('');
+  sel.addEventListener('change', e => {
+    state.explorerModel = e.target.value;
+    renderExplorer();
+  });
+}
+
+function renderExplorer() {
+  const model = state.explorerModel;
+  const s = state.modelStats[model];
+  const pm = providerMeta(model);
+  if (!s) return;
+
+  // Update select
+  const sel = document.getElementById('explorer-select');
+  if (sel.value !== model) sel.value = model;
+
+  // Header
+  document.getElementById('explorer-header').innerHTML = `
+    ${providerChip(model)}
+    <h2>${shortModel(model)}</h2>
+    <span style="font-size:12px;color:var(--text-dim);margin-left:auto">
+      Last seen: ${s.lastSeen ? fmtTimestamp(s.lastSeen) : '—'}
+    </span>
+  `;
+
+  // Stats
+  const uptimeColor = s.uptime >= 0.7 ? 'var(--success)' : s.uptime >= 0.4 ? 'var(--warning)' : 'var(--danger)';
+  document.getElementById('explorer-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-val" style="color:${uptimeColor}">${(s.uptime*100).toFixed(1)}%</div><div class="stat-label">Uptime</div><div class="stat-sub">${s.successCount}/${s.totalRuns} runs</div></div>
+    <div class="stat-card"><div class="stat-val">${s.avgTime ? (s.avgTime/1000).toFixed(2)+'s' : '—'}</div><div class="stat-label">Avg Response</div></div>
+    <div class="stat-card"><div class="stat-val text-accent">${s.bestTime ? (s.bestTime/1000).toFixed(2)+'s' : '—'}</div><div class="stat-label">Best Response</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--blue)">${s.avgTps ? s.avgTps.toFixed(1)+' t/s' : '—'}</div><div class="stat-label">Avg Throughput</div></div>
+  `;
+
+  // Response time chart
+  const labels = state.runs.map(r => fmtTimestampShort(r.timestamp));
+  const timeData = s.responseTimes.map(v => v != null ? v / 1000 : null);
+
+  destroyChart('explorerTime');
+  state.charts.explorerTime = new Chart(document.getElementById('chart-explorer-time'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Response Time (s)',
+        data: timeData,
+        borderColor: modelColor(model),
+        backgroundColor: modelColor(model) + '14',
+        fill: true,
+        tension: 0.2,
+        spanGaps: false,
+        pointRadius: timeData.map(v => v != null ? 3 : 0),
+        pointHoverRadius: 5,
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { ...CHART_DEFAULTS.tooltip, callbacks: {
+        label: (item) => item.raw != null ? `${item.raw.toFixed(2)}s` : 'Failed'
+      }}},
+      scales: {
+        x: { display: false },
+        y: { grid: { color: '#1c1c2e' }, ticks: { callback: v => v + 's' } }
+      }
+    }
+  });
+
+  // Error donut
+  destroyChart('explorerErrors');
+  const errorCanvas = document.getElementById('chart-explorer-errors');
+  const noErrors = document.getElementById('explorer-no-errors');
+  const errorKeys = Object.keys(s.errors);
+  if (errorKeys.length === 0) {
+    errorCanvas.style.display = 'none';
+    noErrors.style.display = 'block';
+  } else {
+    errorCanvas.style.display = 'block';
+    noErrors.style.display = 'none';
+    const errorColors = ['#ef4444','#f59e0b','#a855f7','#3b82f6','#06b6d4','#64748b'];
+    state.charts.explorerErrors = new Chart(errorCanvas, {
+      type: 'doughnut',
+      data: {
+        labels: errorKeys,
+        datasets: [{
+          data: errorKeys.map(k => s.errors[k]),
+          backgroundColor: errorColors.slice(0, errorKeys.length).map(c => c + 'cc'),
+          borderColor: errorColors.slice(0, errorKeys.length),
+          borderWidth: 1,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: {
+          legend: { position: 'right', labels: { boxWidth: 10, font: { size: 11 } } },
+          tooltip: CHART_DEFAULTS.tooltip,
         }
+      }
+    });
+  }
 
-        function setStatus(online) {
-            const dot = document.getElementById('statusDot');
-            const text = document.getElementById('statusText');
-            dot.classList.toggle('offline', online !== 'online');
-            text.textContent = online === 'online' ? 'Live' : 'Offline';
+  // Heatmap
+  const hm = document.getElementById('explorer-heatmap');
+  hm.innerHTML = s.results.map((r, i) => {
+    if (!r) return `<div class="heatmap-cell miss" title="Run ${i+1}: No data"></div>`;
+    const ts = fmtTimestamp(state.runs[i]?.timestamp || '');
+    if (r.success) return `<div class="heatmap-cell pass" title="${ts}: ✓ ${(r.responseTime/1000).toFixed(2)}s"></div>`;
+    return `<div class="heatmap-cell fail" title="${ts}: ✗ ${r.error||'Error'}"></div>`;
+  }).join('');
+
+  // Run history table
+  const tbody = document.getElementById('explorer-run-table');
+  const last20 = s.results.map((r, i) => ({ r, i })).slice(-20).reverse();
+  tbody.innerHTML = last20.map(({ r, i }) => {
+    if (!r) return `<tr><td class="mono text-dim">${fmtTimestamp(state.runs[i]?.timestamp||'')}</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
+    const tps = (r.success && r.responseTime > 0) ? (r.tokensGenerated / (r.responseTime / 1000)).toFixed(1) : null;
+    const actionBtn = r.success && r.response
+      ? `<button class="btn-view" data-run="${i}">View</button>` : '—';
+    return `<tr>
+      <td class="mono" style="font-size:11px">${fmtTimestamp(state.runs[i]?.timestamp||'')}</td>
+      <td><span class="status-badge ${r.success?'ok':'fail'}">${r.success?'✓ OK':'✗ Fail'}</span></td>
+      <td class="mono">${r.success ? (r.responseTime/1000).toFixed(2)+'s' : '—'}</td>
+      <td class="mono">${tps ? tps+' t/s' : '—'}</td>
+      <td>${actionBtn}</td>
+    </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('.btn-view[data-run]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.run);
+      const r = s.results[idx];
+      if (r && r.response) openModal(model, r.response);
+    });
+  });
+}
+
+// ─── Timeline Tab ─────────────────────────────────────────────────────────────
+function renderTimeline() {
+  const { runs } = state;
+  const filter = state.timelineFilter;
+  const now = new Date(runs[runs.length - 1]?.timestamp || Date.now());
+
+  let filtered = [...runs].reverse(); // most recent first
+  if (filter === '24h') {
+    const cutoff = new Date(now); cutoff.setHours(cutoff.getHours() - 24);
+    filtered = filtered.filter(r => new Date(r.timestamp) >= cutoff);
+  } else if (filter === '48h') {
+    const cutoff = new Date(now); cutoff.setHours(cutoff.getHours() - 48);
+    filtered = filtered.filter(r => new Date(r.timestamp) >= cutoff);
+  } else if (filter === '7d') {
+    const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 7);
+    filtered = filtered.filter(r => new Date(r.timestamp) >= cutoff);
+  }
+
+  document.getElementById('timeline-badge').textContent = `${filtered.length} runs`;
+
+  const container = document.getElementById('run-cards');
+  container.innerHTML = filtered.map((run, idx) => {
+    const total = run.summary?.totalModels || run.models.length;
+    const succ = run.summary?.successCount ?? run.models.filter(m => m.success).length;
+    const pct = succ / total;
+    const badgeCls = pct >= 0.6 ? 'green' : pct >= 0.4 ? 'yellow' : 'red';
+    const fastest = run.summary?.fastestModel ? shortModel(run.summary.fastestModel) : '—';
+    const fastestTime = run.summary?.fastestTime ? (run.summary.fastestTime/1000).toFixed(2)+'s' : '';
+
+    return `<div class="run-card" data-run-idx="${idx}">
+      <div class="run-card-header">
+        <span class="run-card-time">${fmtTimestamp(run.timestamp)}</span>
+        <span class="run-success-badge ${badgeCls}">${succ}/${total}</span>
+        <span class="run-fastest">⚡ <span>${fastest}</span>${fastestTime ? ' · '+fastestTime : ''}</span>
+        <span class="run-expand-arrow">▼</span>
+      </div>
+      <div class="run-card-body">
+        <div class="run-prompt">Prompt: ${escHtml((run.prompt||'').slice(0,120))}${(run.prompt||'').length > 120 ? '…' : ''}</div>
+        <table class="run-detail-table">
+          <thead><tr><th>Model</th><th>Status</th><th>Response Time</th><th>Tok/s</th><th>Error</th></tr></thead>
+          <tbody>${run.models.map(m => {
+            const tps = (m.success && m.responseTime > 0) ? (m.tokensGenerated / (m.responseTime / 1000)).toFixed(1) : null;
+            const cls = m.success ? 'text-green' : 'text-red';
+            return `<tr>
+              <td>${providerChip(m.model, true)}<span style="font-size:12px">${shortModel(m.model)}</span></td>
+              <td><span class="${cls}" style="font-size:12px;font-weight:600">${m.success ? '✓' : '✗'}</span></td>
+              <td class="mono">${m.success && m.responseTime ? (m.responseTime/1000).toFixed(2)+'s' : '—'}</td>
+              <td class="mono">${tps ? tps+' t/s' : '—'}</td>
+              <td style="font-size:11px;color:var(--text-dim);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.error ? escHtml(m.error) : ''}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+
+  container.querySelectorAll('.run-card').forEach(card => {
+    card.querySelector('.run-card-header').addEventListener('click', () => {
+      card.classList.toggle('expanded');
+    });
+  });
+}
+
+// ─── Compare Tab ──────────────────────────────────────────────────────────────
+function populateCompareSelects() {
+  const sorted = [...state.modelNames].sort((a,b) => state.modelStats[b].score - state.modelStats[a].score);
+  const opts = sorted.map(m => `<option value="${m}">${shortModel(m)} (${providerMeta(m).name})</option>`).join('');
+
+  const selA = document.getElementById('compare-a');
+  const selB = document.getElementById('compare-b');
+  selA.innerHTML = opts;
+  selB.innerHTML = opts;
+
+  const defaultA = 'qwen/qwen3-coder-480b-a35b-instruct';
+  const defaultB = 'nvidia/nemotron-3-super-120b-a12b';
+  selA.value = state.modelNames.includes(defaultA) ? defaultA : sorted[0];
+  selB.value = state.modelNames.includes(defaultB) ? defaultB : sorted[1];
+
+  selA.addEventListener('change', renderCompare);
+  selB.addEventListener('change', renderCompare);
+
+  document.getElementById('swap-btn').addEventListener('click', () => {
+    const tmp = selA.value;
+    selA.value = selB.value;
+    selB.value = tmp;
+    renderCompare();
+  });
+}
+
+function renderCompare() {
+  const modelA = document.getElementById('compare-a').value;
+  const modelB = document.getElementById('compare-b').value;
+  const sA = state.modelStats[modelA];
+  const sB = state.modelStats[modelB];
+  if (!sA || !sB) return;
+
+  // Head-to-head wins (when both succeed)
+  let winsA = 0, winsB = 0, bothSucceeded = 0;
+  state.runs.forEach((run, i) => {
+    const rA = sA.results[i];
+    const rB = sB.results[i];
+    if (rA && rA.success && rB && rB.success) {
+      bothSucceeded++;
+      if (rA.responseTime < rB.responseTime) winsA++;
+      else winsB++;
+    }
+  });
+
+  const metrics = [
+    { label: 'Uptime', a: (sA.uptime*100).toFixed(1)+'%', b: (sB.uptime*100).toFixed(1)+'%', higherBetter: true, av: sA.uptime, bv: sB.uptime },
+    { label: 'Avg Response Time', a: sA.avgTime ? (sA.avgTime/1000).toFixed(2)+'s' : '—', b: sB.avgTime ? (sB.avgTime/1000).toFixed(2)+'s' : '—', higherBetter: false, av: sA.avgTime, bv: sB.avgTime },
+    { label: 'Best Response Time', a: sA.bestTime ? (sA.bestTime/1000).toFixed(2)+'s' : '—', b: sB.bestTime ? (sB.bestTime/1000).toFixed(2)+'s' : '—', higherBetter: false, av: sA.bestTime, bv: sB.bestTime },
+    { label: 'Avg Throughput', a: sA.avgTps ? sA.avgTps.toFixed(1)+' t/s' : '—', b: sB.avgTps ? sB.avgTps.toFixed(1)+' t/s' : '—', higherBetter: true, av: sA.avgTps, bv: sB.avgTps },
+    { label: 'Total Wins', a: sA.wins, b: sB.wins, higherBetter: true, av: sA.wins, bv: sB.wins },
+    { label: 'Score', a: sA.score, b: sB.score, higherBetter: true, av: sA.score, bv: sB.score },
+    { label: 'H2H Win Rate', a: bothSucceeded ? (winsA/bothSucceeded*100).toFixed(1)+'%' : '—', b: bothSucceeded ? (winsB/bothSucceeded*100).toFixed(1)+'%' : '—', higherBetter: true, av: winsA, bv: winsB },
+  ];
+
+  const colorA = modelColor(modelA);
+  const colorB = modelColor(modelB);
+
+  document.getElementById('h2h-table').innerHTML = `
+    <thead><tr>
+      <td class="h2h-val-a" style="color:${colorA};font-size:13px;padding:10px 16px;text-align:center">${providerChip(modelA, true)} ${shortModel(modelA)}</td>
+      <td class="h2h-metric">Metric</td>
+      <td class="h2h-val-b" style="color:${colorB};font-size:13px;padding:10px 16px;text-align:center">${providerChip(modelB, true)} ${shortModel(modelB)}</td>
+    </tr></thead>
+    <tbody>${metrics.map(m => {
+      let clsA = 'h2h-val-a', clsB = 'h2h-val-b';
+      if (m.av != null && m.bv != null) {
+        const aWins = m.higherBetter ? m.av > m.bv : m.av < m.bv;
+        const bWins = m.higherBetter ? m.bv > m.av : m.bv < m.av;
+        if (aWins) clsA += ' winner';
+        if (bWins) clsB += ' winner';
+      }
+      return `<tr class="h2h-row">
+        <td class="${clsA}" style="padding:10px 16px">${m.a}</td>
+        <td class="h2h-metric" style="padding:10px 16px">${m.label}</td>
+        <td class="${clsB}" style="padding:10px 16px">${m.b}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  `;
+
+  // Overlay chart
+  const labels = state.runs.map(r => fmtTimestampShort(r.timestamp));
+  destroyChart('compareTime');
+  state.charts.compareTime = new Chart(document.getElementById('chart-compare-time'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: shortModel(modelA),
+          data: sA.responseTimes.map(v => v != null ? v/1000 : null),
+          borderColor: colorA,
+          backgroundColor: colorA + '14',
+          fill: false,
+          tension: 0.2,
+          spanGaps: false,
+          pointRadius: 2,
+          pointHoverRadius: 5,
+          borderWidth: 2,
+        },
+        {
+          label: shortModel(modelB),
+          data: sB.responseTimes.map(v => v != null ? v/1000 : null),
+          borderColor: colorB,
+          backgroundColor: colorB + '14',
+          fill: false,
+          tension: 0.2,
+          spanGaps: false,
+          pointRadius: 2,
+          pointHoverRadius: 5,
+          borderWidth: 2,
         }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: { ...CHART_DEFAULTS.tooltip, callbacks: {
+          label: (item) => item.raw != null ? `${item.dataset.label}: ${item.raw.toFixed(2)}s` : `${item.dataset.label}: Failed`
+        }}
+      },
+      scales: {
+        x: { display: false },
+        y: { grid: { color: '#1c1c2e' }, ticks: { callback: v => v + 's' } }
+      }
+    }
+  });
 
-        function calculateModelStats() {
-            state.modelStats = {};
-            state.history.runs.forEach(run => {
-                run.models.forEach(m => {
-                    if (!state.modelStats[m.model]) {
-                        state.modelStats[m.model] = {
-                            totalRuns: 0,
-                            successRuns: 0,
-                            totalTime: 0,
-                            bestTime: Infinity,
-                            totalTps: 0
-                        };
-                    }
-                    const s = state.modelStats[m.model];
-                    s.totalRuns++;
-                    if (m.success) {
-                        s.successRuns++;
-                        s.totalTime += m.responseTime;
-                        s.bestTime = Math.min(s.bestTime, m.responseTime);
-                        s.totalTps += (m.tokensGenerated / (m.responseTime / 1000));
-                    }
-                });
-            });
-        }
+  // Win timeline
+  const winData = state.runs.map((run, i) => {
+    const rA = sA.results[i], rB = sB.results[i];
+    if (!rA?.success && !rB?.success) return null;
+    if (rA?.success && !rB?.success) return 1;
+    if (!rA?.success && rB?.success) return -1;
+    return rA.responseTime < rB.responseTime ? 1 : -1;
+  });
 
-        function renderAll() {
-            renderKPIs();
-            renderCharts();
-            renderModelsTable();
-            renderHistoryTable();
-            renderModelCards();
-            updateTimestamp();
-        }
+  destroyChart('compareWins');
+  state.charts.compareWins = new Chart(document.getElementById('chart-compare-wins'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Winner per run',
+        data: winData,
+        backgroundColor: winData.map(v => v == null ? '#1c1c2e' : v > 0 ? colorA + 'cc' : colorB + 'cc'),
+        borderColor: winData.map(v => v == null ? '#1c1c2e' : v > 0 ? colorA : colorB),
+        borderWidth: 1,
+        borderRadius: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { ...CHART_DEFAULTS.tooltip, callbacks: {
+          label: (item) => {
+            if (item.raw == null) return 'Both failed';
+            return item.raw > 0 ? `${shortModel(modelA)} won` : `${shortModel(modelB)} won`;
+          }
+        }}
+      },
+      scales: {
+        x: { display: false },
+        y: { display: false, min: -1.5, max: 1.5 }
+      }
+    }
+  });
+}
 
-        function updateTimestamp() {
-            const d = new Date(state.currentRun.timestamp);
-            document.getElementById('lastUpdated').textContent = d.toLocaleString();
-        }
+// ─── Modal ────────────────────────────────────────────────────────────────────
+function openModal(model, response) {
+  state.modalResponse = response || '';
+  const pm = providerMeta(model);
+  document.getElementById('modal-provider-chip').textContent = pm.name;
+  document.getElementById('modal-provider-chip').style.cssText = `background:${pm.color}22;color:${pm.color};border:1px solid ${pm.color}44`;
+  document.getElementById('modal-title').textContent = model;
+  document.getElementById('modal-body').innerHTML = renderMarkdown(response || '');
+  document.getElementById('modal').classList.add('open');
+}
 
-        function renderKPIs() {
-            const total = state.history.runs.length;
-            const { successCount, fastestModel, fastestTime } = state.currentRun.summary;
-            const totalModels = state.currentRun.models.length;
-            const rate = ((successCount / totalModels) * 100).toFixed(0);
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
 
-            let bestTps = 0;
-            state.currentRun.models.forEach(m => {
-                if (m.success) bestTps = Math.max(bestTps, m.tokensGenerated / (m.responseTime / 1000));
-            });
+// ─── Tab Navigation ───────────────────────────────────────────────────────────
+function switchTab(tabName) {
+  state.currentTab = tabName;
+  document.querySelectorAll('section[data-tab]').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`section[data-tab="${tabName}"]`)?.classList.add('active');
+  document.querySelector(`.nav-tab[data-goto="${tabName}"]`)?.classList.add('active');
 
-            document.getElementById('kpiTotal').textContent = total;
-            document.getElementById('kpiSuccess').textContent = rate + '%';
-            document.getElementById('kpiSuccessSub').textContent = `${successCount}/${totalModels}`;
-            document.getElementById('kpiFastest').textContent = (fastestTime / 1000).toFixed(2) + 's';
-            document.getElementById('kpiFastestSub').textContent = fastestModel.split('/')[1];
-            document.getElementById('kpiBest').textContent = bestTps.toFixed(0);
-        }
+  if (tabName === 'overview') renderOverview();
+  if (tabName === 'leaderboard') renderLeaderboard();
+  if (tabName === 'explorer') renderExplorer();
+  if (tabName === 'timeline') renderTimeline();
+  if (tabName === 'compare') renderCompare();
+}
 
-        function renderCharts() {
-            const successful = state.currentRun.models.filter(m => m.success).sort((a, b) => a.responseTime - b.responseTime).slice(0, 10);
+// ─── Initialization ───────────────────────────────────────────────────────────
+async function init() {
+  try {
+    const res = await fetch('history.json');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
 
-            const ctx1 = document.getElementById('chartTimes').getContext('2d');
-            if (state.charts.times) state.charts.times.destroy();
-            state.charts.times = new Chart(ctx1, {
-                type: 'bar',
-                data: {
-                    labels: successful.map(m => m.model.split('/')[1]),
-                    datasets: [{
-                        label: 'Response Time (s)',
-                        data: successful.map(m => (m.responseTime / 1000).toFixed(2)),
-                        backgroundColor: COLORS[0],
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#888' } },
-                        y: { grid: { display: false }, ticks: { color: '#888' } }
-                    }
-                }
-            });
+    const processed = processData(data);
+    state.runs = processed.runs;
+    state.modelNames = processed.modelNames;
+    state.modelStats = processed.modelStats;
 
-            const last20 = state.history.runs.slice(0, 20).reverse();
-            const ctx2 = document.getElementById('chartTrend').getContext('2d');
-            if (state.charts.trend) state.charts.trend.destroy();
-            state.charts.trend = new Chart(ctx2, {
-                type: 'line',
-                data: {
-                    labels: last20.map((_, i) => `Run ${i + 1}`),
-                    datasets: [{
-                        label: 'Successful',
-                        data: last20.map(r => r.summary.successCount),
-                        borderColor: COLORS[0],
-                        backgroundColor: 'rgba(0,102,204,0.05)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 3,
-                        pointBackgroundColor: COLORS[0]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#888' } },
-                        x: { grid: { display: false }, ticks: { color: '#888' } }
-                    }
-                }
-            });
+    // Nav status
+    document.getElementById('nav-status').textContent =
+      `${state.runs.length} runs · ${state.modelNames.length} models`;
 
-            const tpsData = successful.sort((a, b) => (b.tokensGenerated / (b.responseTime / 1000)) - (a.tokensGenerated / (a.responseTime / 1000))).slice(0, 8);
-            const ctx3 = document.getElementById('chartThroughput').getContext('2d');
-            if (state.charts.throughput) state.charts.throughput.destroy();
-            state.charts.throughput = new Chart(ctx3, {
-                type: 'bar',
-                data: {
-                    labels: tpsData.map(m => m.model.split('/')[1]),
-                    datasets: [{
-                        label: 'Tokens/sec',
-                        data: tpsData.map(m => (m.tokensGenerated / (m.responseTime / 1000)).toFixed(0)),
-                        backgroundColor: COLORS[1],
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#888' } },
-                        y: { grid: { display: false }, ticks: { color: '#888' } }
-                    }
-                }
-            });
-        }
+    // Populate selects
+    populateExplorerSelect();
+    populateCompareSelects();
 
-        function renderModelsTable() {
-            let models = [...state.currentRun.models];
-            if (state.sortField === 'time') {
-                models.sort((a, b) => {
-                    if (!a.success) return 1;
-                    if (!b.success) return -1;
-                    return a.responseTime - b.responseTime;
-                });
-            } else if (state.sortField === 'tokens') {
-                models.sort((a, b) => (b.tokensGenerated || 0) - (a.tokensGenerated || 0));
-            } else {
-                models.sort((a, b) => a.model.localeCompare(b.model));
-            }
+    // Init leaderboard sort
+    initLeaderboardSort();
 
-            const html = models.map((m, i) => {
-                const tps = m.success && m.responseTime > 0 ? (m.tokensGenerated / (m.responseTime / 1000)).toFixed(0) : '—';
-                const name = m.model.split('/')[1];
-                const status = m.success ? `<span class="status-success"><span class="status-dot-small" style="background: var(--success);"></span>Pass</span>` :
-                    `<span class="status-fail"><span class="status-dot-small" style="background: var(--danger);"></span>Fail</span>`;
-                const canClick = m.success && m.response;
+    // Timeline filters
+    document.querySelectorAll('.filter-btn[data-filter]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.timelineFilter = btn.dataset.filter;
+        renderTimeline();
+      });
+    });
 
-                return `<tr${canClick ? ` style="cursor: pointer;" onclick="showModalByIndex(${i})"` : ''}>
-                    <td>${name}</td>
-                    <td>${status}</td>
-                    <td>${m.success ? (m.responseTime / 1000).toFixed(2) + 's' : '—'}</td>
-                    <td>${tps}</td>
-                    <td>${m.tokensGenerated || '—'}</td>
-                    <td style="text-align: center;">${m.response ? '→' : '—'}</td>
-                </tr>`;
-            }).join('');
+    // Nav tabs
+    document.querySelectorAll('.nav-tab[data-goto]').forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.goto));
+    });
 
-            document.getElementById('modelsBody').innerHTML = html;
-        }
+    // Modal controls
+    document.getElementById('modal-close').addEventListener('click', closeModal);
+    document.getElementById('modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+    document.getElementById('modal-copy').addEventListener('click', () => {
+      navigator.clipboard?.writeText(state.modalResponse).then(() => {
+        const btn = document.getElementById('modal-copy');
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 1500);
+      });
+    });
 
-        function renderModelCards() {
-            const html = Object.entries(state.modelStats).map(([model, stats]) => {
-                if (stats.totalRuns === 0) return '';
-                const name = model.split('/')[1];
-                const avgTime = (stats.totalTime / stats.successRuns / 1000).toFixed(2);
-                const uptime = ((stats.successRuns / stats.totalRuns) * 100).toFixed(0);
-                const avgTps = (stats.totalTps / stats.successRuns).toFixed(0);
-                const bestTime = stats.bestTime === Infinity ? '—' : (stats.bestTime / 1000).toFixed(2);
+    // Initial render
+    renderOverview();
 
-                return `<div class="model-card" onclick="showModelDetail('${model}')">
-                    <div class="model-name">${name}</div>
-                    <div class="model-stat">
-                        <span class="model-stat-label">Uptime</span>
-                        <span class="model-stat-value">${uptime}%</span>
-                    </div>
-                    <div class="model-stat">
-                        <span class="model-stat-label">Avg Response</span>
-                        <span class="model-stat-value">${avgTime}s</span>
-                    </div>
-                    <div class="model-stat">
-                        <span class="model-stat-label">Best Response</span>
-                        <span class="model-stat-value">${bestTime}s</span>
-                    </div>
-                    <div class="model-stat">
-                        <span class="model-stat-label">Avg Throughput</span>
-                        <span class="model-stat-value">${avgTps} tok/s</span>
-                    </div>
-                    <div class="model-stat">
-                        <span class="model-stat-label">Total Runs</span>
-                        <span class="model-stat-value">${stats.totalRuns}</span>
-                    </div>
-                </div>`;
-            }).join('');
+    // Show app
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
 
-            document.getElementById('modelGrid').innerHTML = html || '<div class="loading">No data</div>';
-        }
+  } catch (err) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    document.getElementById('error-state').style.display = 'flex';
+    document.getElementById('error-msg').textContent = `Error: ${err.message}. Make sure history.json exists and you're serving via HTTP.`;
+    console.error('Failed to load data:', err);
+  }
+}
 
-        function renderHistoryTable() {
-            document.getElementById('historyCount').textContent = `${state.history.runs.length} runs`;
-
-            const ctx = document.getElementById('chartHistory').getContext('2d');
-            if (state.charts.history) state.charts.history.destroy();
-            const allRuns = state.history.runs.reverse();
-            state.charts.history = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: allRuns.map(r => new Date(r.timestamp).toLocaleDateString()),
-                    datasets: [{
-                        label: 'Successful Models',
-                        data: allRuns.map(r => r.summary.successCount),
-                        borderColor: COLORS[0],
-                        backgroundColor: 'rgba(0,102,204,0.05)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 3,
-                        pointBackgroundColor: COLORS[0]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: true } },
-                    scales: {
-                        y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#888' } },
-                        x: { grid: { display: false }, ticks: { color: '#888' } }
-                    }
-                }
-            });
-
-            const html = state.history.runs.slice(0, 50).map(r => {
-                const date = new Date(r.timestamp).toLocaleString();
-                const rate = ((r.summary.successCount / r.summary.totalModels) * 100).toFixed(0);
-                const fastest = r.summary.fastestModel.split('/')[1];
-                return `<tr>
-                    <td>${date}</td>
-                    <td>${r.summary.successCount}/${r.summary.totalModels}</td>
-                    <td>${fastest}</td>
-                    <td>${(r.summary.fastestTime / 1000).toFixed(2)}s</td>
-                </tr>`;
-            }).join('');
-
-            document.getElementById('historyBody').innerHTML = html;
-        }
-
-        function showModalByIndex(idx) {
-            const models = state.currentRun.models.filter(m => m.success && m.response);
-            if (idx < models.length) {
-                const m = models[idx];
-                document.getElementById('modalTitle').textContent = m.model.split('/')[1];
-                document.getElementById('modalBody').textContent = m.response;
-                document.getElementById('modal').classList.add('active');
-            }
-        }
-
-        function showModelDetail(model) {
-            const stats = state.modelStats[model];
-            if (!stats) return;
-            
-            const name = model.split('/')[1];
-            const avgTime = (stats.totalTime / stats.successRuns / 1000).toFixed(2);
-            const uptime = ((stats.successRuns / stats.totalRuns) * 100).toFixed(0);
-            const avgTps = (stats.totalTps / stats.successRuns).toFixed(0);
-            const bestTime = (stats.bestTime / 1000).toFixed(2);
-
-            const detail = `Model: ${model}
-
-Performance Statistics:
-────────────────────
-Uptime: ${uptime}%
-Total Runs: ${stats.totalRuns}
-Successful: ${stats.successRuns}
-
-Response Times:
-────────────────────
-Average: ${avgTime}s
-Best: ${bestTime}s
-
-Throughput:
-────────────────────
-Average: ${avgTps} tokens/second`;
-
-            document.getElementById('modalTitle').textContent = name + ' Details';
-            document.getElementById('modalBody').textContent = detail;
-            document.getElementById('modal').classList.add('active');
-        }
-
-        function closeModal() {
-            document.getElementById('modal').classList.remove('active');
-        }
-
-        init();
-    </script>
+init();
+</script>
 </body>
 </html>
