@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
 <style>
 :root {
   --bg: #080810;
@@ -111,7 +112,7 @@ section[data-tab].active{display:block}
 
 /* Leaderboard */
 .table-controls{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
-.search-input{background:var(--bg-card);border:1px solid var(--border-bright);border-radius:var(--radius-sm);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;padding:8px 14px;width:280px;transition:border-color 0.2s;outline:none}
+.search-input{background:var(--bg-card);border:1px solid var(--border-bright);border-radius:var(--radius-sm);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;padding:8px 14px;width:100%;max-width:280px;transition:border-color 0.2s;outline:none}
 .search-input:focus{border-color:var(--accent)}
 .search-input::placeholder{color:var(--text-muted)}
 .table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border)}
@@ -248,6 +249,22 @@ td{padding:10px 16px;color:var(--text);vertical-align:middle}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
+
+/* Responsive */
+@media(max-width:700px){
+  nav{flex-wrap:wrap;height:auto;padding:8px 12px 6px}
+  .nav-tabs{flex-wrap:wrap;gap:3px;width:100%}
+  .nav-brand{margin-right:4px}
+  .nav-tab{font-size:12px;padding:5px 8px}
+  .nav-status{width:100%;margin-left:0;margin-top:4px;text-align:left}
+  main{padding:16px 12px}
+  .compare-selectors{grid-template-columns:1fr}
+  .swap-btn{justify-self:center;width:100%;border-radius:var(--radius-sm)}
+  .run-card-header{flex-wrap:wrap;gap:8px}
+  .run-fastest{margin-left:0;width:100%}
+  .table-controls{flex-direction:column;align-items:stretch}
+  .h2h-table td{padding:8px 10px}
+}
 
 /* Utility */
 .flex{display:flex}.gap-2{gap:8px}.gap-3{gap:12px}.items-center{align-items:center}
@@ -456,10 +473,10 @@ td{padding:10px 16px;color:var(--text);vertical-align:middle}
 const PROVIDER_META = {
   'deepseek-ai': { name: 'DeepSeek', color: '#4d9de0' },
   'z-ai':        { name: 'Z-AI',     color: '#11a883' },
-  'minimax':     { name: 'MiniMax',  color: '#7c3aed' },
+  'minimaxai':   { name: 'MiniMax',  color: '#7c3aed' },
   'nvidia':      { name: 'NVIDIA',   color: '#76b900' },
   'moonshotai':  { name: 'Moonshot', color: '#0891b2' },
-  'gpt-oss':     { name: 'GPT-OSS',  color: '#2563eb' },
+  'openai':      { name: 'OpenAI',   color: '#2563eb' },
   'google':      { name: 'Google',   color: '#ea4335' },
   'qwen':        { name: 'Qwen',     color: '#d97706' },
   'mistralai':   { name: 'Mistral',  color: '#7e22ce' },
@@ -492,6 +509,7 @@ Chart.defaults.font.family = "'Inter', sans-serif";
 
 // ─── State ────────────────────────────────────────────────────────────────────
 const state = {
+  db: null,
   runs: [],
   modelNames: [],
   modelStats: {},
@@ -639,6 +657,45 @@ function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// ─── SQLite Data Loader ───────────────────────────────────────────────────────
+function loadFromDb(db) {
+  const runsQ = db.exec(
+    'SELECT id, timestamp, prompt, success_count, total_models, fastest_model, fastest_time FROM runs ORDER BY timestamp ASC'
+  );
+  if (!runsQ.length || !runsQ[0].values.length) return { runs: [] };
+
+  const runs = runsQ[0].values.map(([id, timestamp, prompt, sc, tm, fm, ft]) => ({
+    _dbId: id,
+    timestamp,
+    prompt,
+    models: [],
+    summary: { successCount: sc, totalModels: tm, fastestModel: fm, fastestTime: ft }
+  }));
+
+  const runById = new Map(runs.map((r, i) => [r._dbId, i]));
+
+  const resQ = db.exec(
+    'SELECT run_id, model, success, error, response_time, tokens_generated, total_tokens FROM model_results ORDER BY run_id ASC'
+  );
+  if (resQ.length && resQ[0].values.length) {
+    for (const [run_id, model, success, error, rt, tg, tt] of resQ[0].values) {
+      const idx = runById.get(run_id);
+      if (idx !== undefined) {
+        runs[idx].models.push({
+          model,
+          success: success === 1,
+          error: error || null,
+          responseTime: rt,
+          tokensGenerated: tg,
+          totalTokens: tt,
+          response: null  // lazy-loaded on demand
+        });
+      }
+    }
+  }
+  return { runs };
+}
+
 // ─── Data Processing ──────────────────────────────────────────────────────────
 function processData(data) {
   const runs = [...data.runs].reverse(); // chronological
@@ -648,6 +705,7 @@ function processData(data) {
   for (const model of modelNames) {
     const results = runs.map(run => run.models.find(m => m.model === model) || null);
     const successes = results.filter(r => r && r.success);
+    const testedResults = results.filter(r => r !== null);
     const times = successes.map(r => r.responseTime).filter(t => t > 0);
     const tpsArr = successes
       .filter(r => r.responseTime > 0)
@@ -655,9 +713,9 @@ function processData(data) {
 
     modelStats[model] = {
       results,
-      totalRuns: results.length,
+      totalRuns: testedResults.length,
       successCount: successes.length,
-      uptime: successes.length / results.length,
+      uptime: testedResults.length ? successes.length / testedResults.length : 0,
       responseTimes: results.map(r => (r && r.success && r.responseTime > 0) ? r.responseTime : null),
       throughputs: results.map(r => (r && r.success && r.responseTime > 0)
         ? r.tokensGenerated / (r.responseTime / 1000) : null),
@@ -1120,7 +1178,7 @@ function renderExplorer() {
   tbody.innerHTML = last20.map(({ r, i }) => {
     if (!r) return `<tr><td class="mono text-dim">${fmtTimestamp(state.runs[i]?.timestamp||'')}</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
     const tps = (r.success && r.responseTime > 0) ? (r.tokensGenerated / (r.responseTime / 1000)).toFixed(1) : null;
-    const actionBtn = r.success && r.response
+    const actionBtn = r.success
       ? `<button class="btn-view" data-run="${i}">View</button>` : '—';
     return `<tr>
       <td class="mono" style="font-size:11px">${fmtTimestamp(state.runs[i]?.timestamp||'')}</td>
@@ -1134,8 +1192,14 @@ function renderExplorer() {
   tbody.querySelectorAll('.btn-view[data-run]').forEach(btn => {
     btn.addEventListener('click', () => {
       const idx = parseInt(btn.dataset.run);
-      const r = s.results[idx];
-      if (r && r.response) openModal(model, r.response);
+      const run = state.runs[idx];
+      if (!run) return;
+      const q = state.db.exec(
+        'SELECT response FROM model_results WHERE run_id = ? AND model = ?',
+        [run._dbId, model]
+      );
+      const response = q[0]?.values[0]?.[0] || '';
+      openModal(model, response);
     });
   });
 }
@@ -1407,9 +1471,16 @@ function switchTab(tabName) {
 // ─── Initialization ───────────────────────────────────────────────────────────
 async function init() {
   try {
-    const res = await fetch('history.json');
+    const SQL = await initSqlJs({
+      locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${file}`
+    });
+
+    const res = await fetch('history.db');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    const buf = await res.arrayBuffer();
+    state.db = new SQL.Database(new Uint8Array(buf));
+
+    const data = loadFromDb(state.db);
 
     const processed = processData(data);
     state.runs = processed.runs;
@@ -1464,7 +1535,7 @@ async function init() {
     document.getElementById('loading').style.display = 'none';
     document.getElementById('app').classList.add('visible');
     document.getElementById('error-state').style.display = 'flex';
-    document.getElementById('error-msg').textContent = `Error: ${err.message}. Make sure history.json exists and you're serving via HTTP.`;
+    document.getElementById('error-msg').textContent = `Error: ${err.message}. Make sure history.db exists and you're serving via HTTP.`;
     console.error('Failed to load data:', err);
   }
 }

@@ -24,3 +24,10 @@ yarn.lock
 # Logs
 *.log
 npm-debug.log*
+
+# Legacy JSON history (replaced by history.db)
+history.json
+
+# Python
+__pycache__/
+*.pyc

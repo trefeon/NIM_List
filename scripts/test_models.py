@@ -10,6 +10,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from db_utils import write_run  # noqa: E402
+
 API_BASE = os.getenv("API_BASE", "https://integrate.api.nvidia.com/v1")
 API_KEY = os.getenv("NIM_API_KEY", "")
 MODEL_GROUP = os.getenv("MODEL_GROUP", "all")
@@ -18,7 +21,6 @@ PROMPT = "Write a Python function that checks if a number is prime and returns T
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 OUTPUT_FILE = SCRIPT_DIR / "results.json"
-HISTORY_FILE = SCRIPT_DIR.parent / "history.json"
 
 ALL_MODELS = [
     "deepseek-ai/deepseek-v4-flash",
@@ -29,7 +31,7 @@ ALL_MODELS = [
     "minimaxai/minimax-m2.7",
     "minimaxai/minimax-m2.5",
     "nvidia/nemotron-3-super-120b-a12b",
-    "moonshotai/kimi-k2.5",
+    "moonshotai/kimi-k2.6",
     "moonshotai/kimi-k2-instruct",
     "openai/gpt-oss-120b",
     "google/gemma-4-31b-it",
@@ -222,17 +224,8 @@ def compile_output(timestamp: str, prompt: str, models: list[dict[str, Any]]) ->
 
 
 def update_history(new_run: dict[str, Any]) -> None:
-    try:
-        history = json.loads(HISTORY_FILE.read_text(encoding="utf-8"))
-    except Exception:
-        history = {"runs": []}
-
-    runs = history.get("runs")
-    if not isinstance(runs, list):
-        runs = []
-    runs.insert(0, new_run)
-    history["runs"] = runs[:720]
-    HISTORY_FILE.write_text(json.dumps(history, indent=2), encoding="utf-8")
+    write_run(new_run)
+    print(f"History updated: {str(SCRIPT_DIR.parent / 'history.db')}")
 
 
 def main() -> int:
@@ -275,7 +268,6 @@ def main() -> int:
 
     if MODEL_GROUP in ("all", ""):
         update_history(final_json)
-        print(f"History updated: {HISTORY_FILE}")
 
     return 0
 
