@@ -28,6 +28,7 @@ ALL_MODELS = [
     "z-ai/glm-5.1",
     "minimaxai/minimax-m2.7",
     "nvidia/nemotron-3-super-120b-a12b",
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
     "moonshotai/kimi-k2.6",
     "openai/gpt-oss-120b",
     "google/gemma-4-31b-it",

@@ -107,6 +107,7 @@ That's it — your dashboard auto-refreshes every hour. ✨
 | **MiniMax** | `minimaxai/minimax-m2.7` | Efficient inference model |
 | **MiniMax** | `minimaxai/minimax-m2.5` | Previous generation MiniMax |
 | **NVIDIA** | `nvidia/nemotron-3-super-120b-a12b` | NVIDIA's 120B flagship |
+| **NVIDIA** | `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` | Compact omni reasoning model |
 | **Moonshot** | `moonshotai/kimi-k2.6` | Context-optimized model |
 | **Moonshot** | `moonshotai/kimi-k2-instruct` | Instruction-tuned Kimi |
 | **OpenAI** | `openai/gpt-oss-120b` | Open-source 120B |
