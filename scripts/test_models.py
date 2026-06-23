@@ -87,67 +87,84 @@ def ban_model(model: str) -> None:
             print(f"Error: Failed to save banned model {model}: {exc}", file=sys.stderr)
 
 
+def get_available_keys() -> list[str]:
+    """Retrieve all available API keys, including primary and rotation keys."""
+    keys = []
+    if API_KEY:
+        keys.append(API_KEY)
+    extra_keys = os.getenv("NIM_API_KEYS", "")
+    if extra_keys:
+        for k in extra_keys.split(","):
+            k = k.strip()
+            if k and k not in keys:
+                keys.append(k)
+    return keys
+
+
 def fetch_dynamic_models() -> list[str]:
-    """Fetch active chat/instruct models from the NVIDIA NIM API."""
+    """Fetch active chat/instruct models from the NVIDIA NIM API, rotating keys if rate limited."""
     banned_models = load_banned_models()
     fallback_models = [m for m in ALL_MODELS if m not in banned_models]
 
-    if not API_KEY:
+    available_keys = get_available_keys()
+    if not available_keys:
         return fallback_models
 
     url = f"{API_BASE}/models"
-    req = urllib.request.Request(
-        url,
-        headers={
-            "Authorization": f"Bearer {API_KEY}",
-            "Content-Type": "application/json",
-        },
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=15) as response:
-            if response.status == 200:
-                data = json.loads(response.read().decode("utf-8"))
-                model_ids = [m["id"] for m in data.get("data", []) if "id" in m]
-                
-                # Excluded keywords (non-chat/embedding/utility models)
-                excluded = {
-                    "embed", "parse", "clip", "translate", "safety", "guard", 
-                    "reward", "calibration", "pii", "video", "cosmos", "deplot", 
-                    "bge", "detector", "synthetic", "classifier"
-                }
-                
-                # Included keywords (chat, instruct, flash, code, etc.)
-                included = {
-                    "instruct", "chat", "flash", "pro", "large", "medium", 
-                    "small", "it", "next", "coder", "code", "glm", "kimi", 
-                    "gemma", "nemotron", "dbrx", "jamba", "yi-", "solar", 
-                    "palmyra", "dracarys", "yi-large", "solar", "zamba2"
-                }
-
-                filtered_models: list[str] = []
-                for mid in model_ids:
-                    if mid in banned_models:
-                        continue
-                    mid_lower = mid.lower()
+    
+    for key in available_keys:
+        req = urllib.request.Request(
+            url,
+            headers={
+                "Authorization": f"Bearer {key}",
+                "Content-Type": "application/json",
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=15) as response:
+                if response.status == 200:
+                    data = json.loads(response.read().decode("utf-8"))
+                    model_ids = [m["id"] for m in data.get("data", []) if "id" in m]
                     
-                    # Always keep if in our predefined list of interesting models
-                    if mid in ALL_MODELS:
-                        filtered_models.append(mid)
-                        continue
-                        
-                    # Skip if it contains any excluded keywords
-                    if any(x in mid_lower for x in excluded):
-                        continue
-                        
-                    # Keep if it contains any included keywords
-                    if any(i in mid_lower for i in included):
-                        filtered_models.append(mid)
+                    # Excluded keywords (non-chat/embedding/utility models)
+                    excluded = {
+                        "embed", "parse", "clip", "translate", "safety", "guard", 
+                        "reward", "calibration", "pii", "video", "cosmos", "deplot", 
+                        "bge", "detector", "synthetic", "classifier"
+                    }
+                    
+                    # Included keywords (chat, instruct, flash, code, etc.)
+                    included = {
+                        "instruct", "chat", "flash", "pro", "large", "medium", 
+                        "small", "it", "next", "coder", "code", "glm", "kimi", 
+                        "gemma", "nemotron", "dbrx", "jamba", "yi-", "solar", 
+                        "palmyra", "dracarys", "yi-large", "solar", "zamba2"
+                    }
 
-                # Return sorted list to ensure consistency, but keep fallback models if empty
-                if filtered_models:
-                    return sorted(list(set(filtered_models)))
-    except Exception as exc:
-        print(f"Warning: Failed to fetch dynamic model list: {exc}. Using fallback list.", file=sys.stderr)
+                    filtered_models: list[str] = []
+                    for mid in model_ids:
+                        if mid in banned_models:
+                            continue
+                        mid_lower = mid.lower()
+                        
+                        # Always keep if in our predefined list of interesting models
+                        if mid in ALL_MODELS:
+                            filtered_models.append(mid)
+                            continue
+                            
+                        # Skip if it contains any excluded keywords
+                        if any(x in mid_lower for x in excluded):
+                            continue
+                            
+                        # Keep if it contains any included keywords
+                        if any(i in mid_lower for i in included):
+                            filtered_models.append(mid)
+
+                    if filtered_models:
+                        return sorted(list(set(filtered_models)))
+        except Exception as exc:
+            print(f"Warning: Failed to fetch dynamic model list with key: {exc}. Trying next key...", file=sys.stderr)
+            continue
     
     return fallback_models
 
@@ -197,7 +214,7 @@ def to_int(value: Any) -> int:
         return 0
 
 
-def call_model(model: str, prompt: str) -> dict[str, Any]:
+def call_model(model: str, prompt: str, api_key: str) -> dict[str, Any]:
     payload = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
@@ -213,7 +230,7 @@ def call_model(model: str, prompt: str) -> dict[str, Any]:
         data=body,
         method="POST",
         headers={
-            "Authorization": f"Bearer {API_KEY}",
+            "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
         },
     )
@@ -347,11 +364,39 @@ def main() -> int:
     print(f"Testing {len(models)} models...")
     print()
 
+    available_keys = get_available_keys()
+    if not available_keys:
+        print("Error: No NIM API keys available", file=sys.stderr)
+        return 1
+
+    print(f"Loaded {len(available_keys)} API keys for rotation.")
+
+    key_idx = 0
     results: list[dict[str, Any]] = []
     for model in models:
         print(f"Testing: {model}")
-        result = call_model(model, PROMPT)
         
+        attempts = 0
+        max_attempts = len(available_keys)
+        result = None
+        
+        while attempts < max_attempts:
+            current_key = available_keys[key_idx]
+            result = call_model(model, PROMPT, current_key)
+            
+            # Check if rate limited
+            err_msg = str(result.get("error") or "")
+            is_rate_limited = "429" in err_msg or "rate limit" in err_msg.lower() or "too many requests" in err_msg.lower()
+            
+            if is_rate_limited:
+                key_idx = (key_idx + 1) % len(available_keys)
+                attempts += 1
+                print(f"  Rate limited! Rotating to key {key_idx + 1}/{len(available_keys)} and retrying...")
+                time.sleep(1)
+                continue
+            else:
+                break
+
         # Check if the model failed to respond under 1 minute
         is_timeout = False
         if not result.get("success"):

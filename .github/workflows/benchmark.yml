@@ -16,6 +16,7 @@ jobs:
       - name: Test model group 1
         env:
           NIM_API_KEY: ${{ secrets.NIM_API_KEY }}
+          NIM_API_KEYS: ${{ secrets.NIM_API_KEYS }}
           MODEL_GROUP: group1
         run: python3 scripts/test_models.py
       
@@ -38,6 +39,7 @@ jobs:
       - name: Test model group 2
         env:
           NIM_API_KEY: ${{ secrets.NIM_API_KEY }}
+          NIM_API_KEYS: ${{ secrets.NIM_API_KEYS }}
           MODEL_GROUP: group2
         run: python3 scripts/test_models.py
       
