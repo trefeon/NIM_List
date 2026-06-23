@@ -28,11 +28,12 @@ if env_path.exists():
 API_BASE = os.getenv("API_BASE", "https://integrate.api.nvidia.com/v1")
 API_KEY = os.getenv("NIM_API_KEY", "")
 MODEL_GROUP = os.getenv("MODEL_GROUP", "all")
-REQUEST_TIMEOUT_SECONDS = int(os.getenv("REQUEST_TIMEOUT_SECONDS", "300"))
+REQUEST_TIMEOUT_SECONDS = int(os.getenv("REQUEST_TIMEOUT_SECONDS", "60"))
 PROMPT = "Write a Python function that checks if a number is prime and returns True or False"
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 OUTPUT_FILE = SCRIPT_DIR / "results.json"
+BANNED_MODELS_FILE = SCRIPT_DIR / "banned_models.txt"
 
 ALL_MODELS = [
     "deepseek-ai/deepseek-v4-flash",
@@ -58,10 +59,41 @@ ALL_MODELS = [
 ]
 
 
+def load_banned_models() -> set[str]:
+    """Load set of permanently banned models."""
+    if BANNED_MODELS_FILE.exists():
+        try:
+            return {
+                line.strip()
+                for line in BANNED_MODELS_FILE.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            }
+        except Exception as exc:
+            print(f"Warning: Failed to read banned models: {exc}", file=sys.stderr)
+    return set()
+
+
+def ban_model(model: str) -> None:
+    """Add a model to the permanent banned list."""
+    banned = load_banned_models()
+    if model not in banned:
+        banned.add(model)
+        try:
+            BANNED_MODELS_FILE.write_text(
+                "\n".join(sorted(list(banned))) + "\n", encoding="utf-8"
+            )
+            print(f"Model permanently banned (no response under 1 minute): {model}")
+        except Exception as exc:
+            print(f"Error: Failed to save banned model {model}: {exc}", file=sys.stderr)
+
+
 def fetch_dynamic_models() -> list[str]:
     """Fetch active chat/instruct models from the NVIDIA NIM API."""
+    banned_models = load_banned_models()
+    fallback_models = [m for m in ALL_MODELS if m not in banned_models]
+
     if not API_KEY:
-        return ALL_MODELS
+        return fallback_models
 
     url = f"{API_BASE}/models"
     req = urllib.request.Request(
@@ -94,6 +126,8 @@ def fetch_dynamic_models() -> list[str]:
 
                 filtered_models: list[str] = []
                 for mid in model_ids:
+                    if mid in banned_models:
+                        continue
                     mid_lower = mid.lower()
                     
                     # Always keep if in our predefined list of interesting models
@@ -115,7 +149,7 @@ def fetch_dynamic_models() -> list[str]:
     except Exception as exc:
         print(f"Warning: Failed to fetch dynamic model list: {exc}. Using fallback list.", file=sys.stderr)
     
-    return ALL_MODELS
+    return fallback_models
 
 
 def selected_models(models_list: list[str]) -> list[str]:
@@ -317,12 +351,28 @@ def main() -> int:
     for model in models:
         print(f"Testing: {model}")
         result = call_model(model, PROMPT)
-        if result.get("success"):
+        
+        # Check if the model failed to respond under 1 minute
+        is_timeout = False
+        if not result.get("success"):
+            err_msg = str(result.get("error") or "").lower()
+            if "timed out" in err_msg or "timeout" in err_msg:
+                is_timeout = True
+        
+        resp_time = result.get("responseTime")
+        if resp_time is not None and resp_time > 60000:
+            is_timeout = True
+            
+        if is_timeout:
+            ban_model(model)
+            print(f"  ✗ Failed: {result.get('error') or 'Timeout (>60s)'}")
+        elif result.get("success"):
             print(
                 f"  ✓ Success ({result['responseTime']}ms, {result.get('tokensGenerated', 0)} tokens)"
             )
         else:
             print(f"  ✗ Failed: {result.get('error') or 'Unknown error'}")
+            
         results.append(result)
         time.sleep(0.5)
 
