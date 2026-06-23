@@ -481,6 +481,15 @@ const PROVIDER_META = {
   'qwen':        { name: 'Qwen',     color: '#d97706' },
   'mistralai':   { name: 'Mistral',  color: '#7e22ce' },
   'meta':        { name: 'Meta',     color: '#1877f2' },
+  '01-ai':       { name: '01-AI',    color: '#ff6000' },
+  'ai21labs':    { name: 'AI21 Labs', color: '#6d28d9' },
+  'databricks':  { name: 'Databricks', color: '#ff3621' },
+  'ibm':         { name: 'IBM',      color: '#0f62fe' },
+  'microsoft':   { name: 'Microsoft', color: '#f25022' },
+  'upstage':     { name: 'Upstage',  color: '#f43f5e' },
+  'writer':      { name: 'Writer',   color: '#10b981' },
+  'stepfun-ai':  { name: 'StepFun',  color: '#0055ff' },
+  'zyphra':      { name: 'Zyphra',   color: '#8b5cf6' },
 };
 
 const MODEL_PALETTE = [
@@ -1493,6 +1502,10 @@ async function init() {
       `${state.runs.length} runs · ${state.modelNames.length} models`;
 
     // Populate selects
+    if (!state.modelNames.includes(state.explorerModel) && state.modelNames.length > 0) {
+      const sorted = [...state.modelNames].sort((a,b) => state.modelStats[b].score - state.modelStats[a].score);
+      state.explorerModel = sorted[0];
+    }
     populateExplorerSelect();
     populateCompareSelects();
 

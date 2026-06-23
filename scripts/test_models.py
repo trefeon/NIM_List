@@ -4,6 +4,9 @@ import json
 import os
 import sys
 import time
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -12,6 +15,15 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from db_utils import write_run  # noqa: E402
+
+# Load local .env file if it exists
+env_path = Path(__file__).resolve().parent.parent / ".env"
+if env_path.exists():
+    for env_line in env_path.read_text(encoding="utf-8").splitlines():
+        env_line = env_line.strip()
+        if env_line and not env_line.startswith("#") and "=" in env_line:
+            env_k, env_v = env_line.split("=", 1)
+            os.environ.setdefault(env_k.strip(), env_v.strip())
 
 API_BASE = os.getenv("API_BASE", "https://integrate.api.nvidia.com/v1")
 API_KEY = os.getenv("NIM_API_KEY", "")
@@ -45,17 +57,75 @@ ALL_MODELS = [
     "stepfun-ai/step-3.7-flash"
 ]
 
-GROUP1_MODELS = ALL_MODELS[:10]
 
-GROUP2_MODELS = ALL_MODELS[10:]
+def fetch_dynamic_models() -> list[str]:
+    """Fetch active chat/instruct models from the NVIDIA NIM API."""
+    if not API_KEY:
+        return ALL_MODELS
 
+    url = f"{API_BASE}/models"
+    req = urllib.request.Request(
+        url,
+        headers={
+            "Authorization": f"Bearer {API_KEY}",
+            "Content-Type": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as response:
+            if response.status == 200:
+                data = json.loads(response.read().decode("utf-8"))
+                model_ids = [m["id"] for m in data.get("data", []) if "id" in m]
+                
+                # Excluded keywords (non-chat/embedding/utility models)
+                excluded = {
+                    "embed", "parse", "clip", "translate", "safety", "guard", 
+                    "reward", "calibration", "pii", "video", "cosmos", "deplot", 
+                    "bge", "detector", "synthetic", "classifier"
+                }
+                
+                # Included keywords (chat, instruct, flash, code, etc.)
+                included = {
+                    "instruct", "chat", "flash", "pro", "large", "medium", 
+                    "small", "it", "next", "coder", "code", "glm", "kimi", 
+                    "gemma", "nemotron", "dbrx", "jamba", "yi-", "solar", 
+                    "palmyra", "dracarys", "yi-large", "solar", "zamba2"
+                }
 
-def selected_models() -> list[str]:
-    if MODEL_GROUP == "group1":
-        return GROUP1_MODELS
-    if MODEL_GROUP == "group2":
-        return GROUP2_MODELS
+                filtered_models: list[str] = []
+                for mid in model_ids:
+                    mid_lower = mid.lower()
+                    
+                    # Always keep if in our predefined list of interesting models
+                    if mid in ALL_MODELS:
+                        filtered_models.append(mid)
+                        continue
+                        
+                    # Skip if it contains any excluded keywords
+                    if any(x in mid_lower for x in excluded):
+                        continue
+                        
+                    # Keep if it contains any included keywords
+                    if any(i in mid_lower for i in included):
+                        filtered_models.append(mid)
+
+                # Return sorted list to ensure consistency, but keep fallback models if empty
+                if filtered_models:
+                    return sorted(list(set(filtered_models)))
+    except Exception as exc:
+        print(f"Warning: Failed to fetch dynamic model list: {exc}. Using fallback list.", file=sys.stderr)
+    
     return ALL_MODELS
+
+
+def selected_models(models_list: list[str]) -> list[str]:
+    if MODEL_GROUP == "group1":
+        half = len(models_list) // 2
+        return models_list[:half]
+    if MODEL_GROUP == "group2":
+        half = len(models_list) // 2
+        return models_list[half:]
+    return models_list
 
 
 def failure_result(model: str, error: str) -> dict[str, Any]:
@@ -233,7 +303,8 @@ def main() -> int:
         print("Error: NIM_API_KEY environment variable not set", file=sys.stderr)
         return 1
 
-    models = selected_models()
+    all_available = fetch_dynamic_models()
+    models = selected_models(all_available)
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     group_label = f" (Group: {MODEL_GROUP})" if MODEL_GROUP else ""
