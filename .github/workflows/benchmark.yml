@@ -11,7 +11,7 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
       
       - name: Test model group 1
         env:
@@ -21,7 +21,7 @@ jobs:
         run: python3 scripts/test_models.py
       
       - name: Upload group1 results
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: results-group1
           path: scripts/results.json
@@ -34,7 +34,7 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
       
       - name: Test model group 2
         env:
@@ -44,7 +44,7 @@ jobs:
         run: python3 scripts/test_models.py
       
       - name: Upload group2 results
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: results-group2
           path: scripts/results.json
@@ -58,10 +58,10 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
       
       - name: Download all results
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           path: scripts/
       
